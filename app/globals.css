@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --red:#D1433A;
+  --green:#0E7C59;
+  --cream:#F7F3EC;
+}
+.bg-cream { background-color: var(--cream); }
+.text-redbrand { color: var(--red); }
+.bg-redbrand { background-color: var(--red); }
+.from-greenbrand { --tw-gradient-from: #0E7C59 var(--tw-gradient-from-position); --tw-gradient-to: rgb(14 124 89 / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.to-redbrand { --tw-gradient-to: #D1433A var(--tw-gradient-to-position); }
