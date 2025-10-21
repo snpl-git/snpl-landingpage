@@ -1,13 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 
+// Force dynamic rendering so Next/Vercel won't try to prerender this page
+export const dynamic = 'force-dynamic'
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-function ConfirmForm() {
+function ConfirmFormInner() {
   const stripe = useStripe()
   const elements = useElements()
   const search = useSearchParams()
@@ -16,7 +19,6 @@ function ConfirmForm() {
 
   const returnUrl = useMemo(() => {
     const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    // after Stripe confirms, it will redirect here
     const url = new URL('/demo/success', base)
     if (orderId) url.searchParams.set('order', orderId)
     return url.toString()
@@ -28,13 +30,10 @@ function ConfirmForm() {
     setLoading(true)
     const { error } = await stripe.confirmSetup({
       elements,
-      confirmParams: {
-        return_url: returnUrl,
-      },
+      confirmParams: { return_url: returnUrl },
     })
     setLoading(false)
     if (error) alert(error.message)
-    // On success, Stripe will redirect to return_url automatically.
   }
 
   return (
@@ -52,9 +51,10 @@ function ConfirmForm() {
   )
 }
 
-export default function ConfirmPage() {
+function ConfirmFormWithClientSecret() {
   const search = useSearchParams()
-  const clientSecret = search.get('cs') || '' // set by /api/checkout/start
+  const clientSecret = search.get('cs') || ''
+
   const options = useMemo(
     () => ({ clientSecret, appearance: { theme: 'flat' } } as const),
     [clientSecret]
@@ -70,7 +70,15 @@ export default function ConfirmPage() {
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <ConfirmForm />
+      <ConfirmFormInner />
     </Elements>
+  )
+}
+
+export default function ConfirmPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
+      <ConfirmFormWithClientSecret />
+    </Suspense>
   )
 }
