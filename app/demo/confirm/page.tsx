@@ -1,62 +1,76 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
-import {
-  Elements,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from '@stripe/react-stripe-js'
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-function ConfirmInner() {
+function ConfirmForm() {
   const stripe = useStripe()
   const elements = useElements()
+  const search = useSearchParams()
+  const orderId = search.get('order') || ''
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit() {
+  const returnUrl = useMemo(() => {
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // after Stripe confirms, it will redirect here
+    const url = new URL('/demo/success', base)
+    if (orderId) url.searchParams.set('order', orderId)
+    return url.toString()
+  }, [orderId])
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
     if (!stripe || !elements) return
     setLoading(true)
-    const { error } = await stripe.confirmSetup({ elements, confirmParams: {} })
+    const { error } = await stripe.confirmSetup({
+      elements,
+      confirmParams: {
+        return_url: returnUrl,
+      },
+    })
     setLoading(false)
-    if (error) {
-      alert(error.message)
-    } else {
-      window.location.href = '/demo/success'
-    }
+    if (error) alert(error.message)
+    // On success, Stripe will redirect to return_url automatically.
   }
 
   return (
-    <div className="mx-auto max-w-md p-6">
-      <h1 className="text-xl font-semibold mb-4">Authorize Your Payment Method</h1>
+    <form onSubmit={onSubmit} className="mx-auto max-w-md p-6 space-y-4">
+      <h1 className="text-xl font-semibold">Authorize your card</h1>
       <PaymentElement />
       <button
-        onClick={handleSubmit}
+        type="submit"
         disabled={!stripe || loading}
-        className="mt-4 px-4 py-2 bg-black text-white rounded"
+        className="mt-3 px-4 py-2 rounded bg-black text-white disabled:opacity-50"
       >
-        {loading ? 'Processing…' : 'Confirm Authorization'}
+        {loading ? 'Authorizing…' : 'Confirm Authorization'}
       </button>
-    </div>
+    </form>
   )
 }
 
 export default function ConfirmPage() {
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const search = useSearchParams()
+  const clientSecret = search.get('cs') || '' // set by /api/checkout/start
+  const options = useMemo(
+    () => ({ clientSecret, appearance: { theme: 'flat' } } as const),
+    [clientSecret]
+  )
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const cs = params.get('cs')
-    setClientSecret(cs)
-  }, [])
-
-  if (!clientSecret) return null
+  if (!clientSecret) {
+    return (
+      <main className="mx-auto max-w-md p-6">
+        <p className="text-red-600">Missing client secret. Start from /demo again.</p>
+      </main>
+    )
+  }
 
   return (
-    <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <ConfirmInner />
+    <Elements stripe={stripePromise} options={options}>
+      <ConfirmForm />
     </Elements>
   )
 }
