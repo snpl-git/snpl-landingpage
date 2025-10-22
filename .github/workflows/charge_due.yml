@@ -1,0 +1,28 @@
+name: Daily Supabase Charge
+
+on:
+  schedule:
+    - cron: '0 11 * * *'   # 11:00 UTC = ~7:00 AM ET
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Edge Function
+        env:
+          FUNCTION_URL: ${{ secrets.FUNCTION_URL }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: |
+          set -e
+          : "${FUNCTION_URL:?Missing FUNCTION_URL secret}"
+          : "${CRON_TOKEN:?Missing CRON_TOKEN secret}"
+          echo "Calling $FUNCTION_URL ..."
+          curl --fail -s -X POST \
+            "$FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"cron_token\":\"${CRON_TOKEN}\"}" \
+            | tee response.json
+
+          echo "Response:"
+          cat response.json
