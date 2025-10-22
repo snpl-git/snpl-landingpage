@@ -2,8 +2,8 @@ name: Daily Supabase Charge
 
 on:
   schedule:
-    - cron: '0 11 * * *'   # 11:00 UTC = ~7:00 AM ET
-  workflow_dispatch:        # lets you run it manually from the Actions tab
+    - cron: '0 11 * * *'   # 11:00 UTC ≈ 7:00 AM ET
+  workflow_dispatch:        # allow manual runs
 
 jobs:
   trigger:
