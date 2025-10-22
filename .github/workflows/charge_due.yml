@@ -3,7 +3,7 @@ name: Daily Supabase Charge
 on:
   schedule:
     - cron: '0 11 * * *'   # 11:00 UTC ≈ 7:00 AM ET
-  workflow_dispatch:        # allow manual runs
+  workflow_dispatch:        # allows manual runs from the Actions tab
 
 jobs:
   trigger:
@@ -17,12 +17,20 @@ jobs:
           set -e
           : "${FUNCTION_URL:?Missing FUNCTION_URL secret}"
           : "${CRON_TOKEN:?Missing CRON_TOKEN secret}"
+
           echo "Calling $FUNCTION_URL ..."
-          curl --fail -s -X POST \
+          # Call the function, capture status, headers, and body
+          HTTP_STATUS=$(curl --fail --show-error -s -X POST \
             "$FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -d "{\"cron_token\":\"${CRON_TOKEN}\"}" \
-            | tee response.json
+            -D headers.txt \
+            -o response.json \
+            -w "%{http_code}")
 
-          echo "Response:"
-          cat response.json
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response headers:"
+          sed -e 's/\r$//' headers.txt | tail -n +1
+
+          echo "Response body:"
+          cat response.json || true
