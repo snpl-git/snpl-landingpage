@@ -77,6 +77,7 @@ export async function POST(req: Request) {
 
     const { error: schedErr } = await supaAdmin.from('scheduled_payments').insert({
       order_id: orderRow.id,
+      amount: totalCents,
       run_at_date: date, // YYYY-MM-DD
       payment_method_id: 'pm_pending', // will be replaced by webhook
       currency: 'usd',
