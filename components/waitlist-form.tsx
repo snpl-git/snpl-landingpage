@@ -21,25 +21,35 @@ export default function WaitlistForm() {
   }
 
   if (submitted) {
-    return <p className="text-green-600">You're in.</p>;
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-slate-50 px-6 py-5 text-center shadow-sm">
+        <p className="font-medium text-slate-900">You’re in.</p>
+        <p className="mt-2 text-sm text-slate-600">
+          We’ll keep you updated as SNPL grows.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex justify-center gap-2">
+    <form
+      onSubmit={handleSubmit}
+      className="mx-auto flex max-w-xl flex-col items-center gap-3 sm:flex-row sm:justify-center"
+    >
       <input
         type="email"
         required
         placeholder="Enter your email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="border px-4 py-3 rounded-lg w-72"
+        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900 sm:w-80"
       />
 
       <button
         type="submit"
-        className="bg-black text-white px-6 py-3 rounded-lg"
+        className="w-full rounded-xl bg-slate-900 px-6 py-3 text-white transition hover:bg-slate-800 sm:w-auto"
       >
-        Join
+        Join Waitlist
       </button>
     </form>
   );
