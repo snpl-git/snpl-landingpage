@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
           <img
             src="/demo-preview.png"
-            alt="SNPL demo preview"
+            alt="SNPL Demo Preview"
             className="w-full object-cover"
           />
         </div>
