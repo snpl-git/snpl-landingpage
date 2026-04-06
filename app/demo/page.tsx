@@ -82,26 +82,57 @@ export default function DemoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-black">
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="mb-12 max-w-3xl">
-          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-gray-500">
+    <main className="min-h-screen bg-white text-slate-900">
+      <section className="bg-slate-900 text-white">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
             Interactive Demo
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Schedule a purchase around your payday
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+            See how SNPL lets you buy now and pay on your schedule
           </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-gray-600">
-            Pick a product, choose your date, and see how SNPL lets you plan purchases
-            around your real cash flow.
+          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
+            Pick a product, choose your payday, and experience how purchases can be planned
+            around real cash flow.
           </p>
         </div>
+      </section>
 
+      <section className="border-b border-slate-200 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+              How this demo works
+            </h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            {[
+              ['1', 'Choose a product'],
+              ['2', 'Select your quantity'],
+              ['3', 'Pick your payday'],
+              ['4', 'Authorize and schedule'],
+            ].map(([step, text]) => (
+              <div
+                key={step}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              >
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                  {step}
+                </div>
+                <p className="text-sm font-medium text-slate-700">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[1.5fr_0.9fr]">
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Products</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-500">
                 {products.length} item{products.length === 1 ? '' : 's'} available
               </p>
             </div>
@@ -110,9 +141,9 @@ export default function DemoPage() {
               {products.map((p) => (
                 <div
                   key={p.id}
-                  className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <div className="aspect-[4/3] bg-gray-100">
+                  <div className="aspect-[4/3] bg-slate-100">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
@@ -120,7 +151,7 @@ export default function DemoPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                      <div className="flex h-full items-center justify-center text-sm text-slate-400">
                         No image
                       </div>
                     )}
@@ -128,24 +159,18 @@ export default function DemoPage() {
 
                   <div className="p-5">
                     <div className="mb-1 text-lg font-medium">{p.name}</div>
-                    {p.description ? (
-                      <p className="mb-4 text-sm leading-6 text-gray-500">
-                        {p.description}
-                      </p>
-                    ) : (
-                      <p className="mb-4 text-sm leading-6 text-gray-500">
-                        Schedule this purchase for a date that works for you.
-                      </p>
-                    )}
+                    <p className="mb-4 text-sm leading-6 text-slate-500">
+                      {p.description || 'Schedule this purchase for a date that works for you.'}
+                    </p>
 
                     <div className="mb-4 text-xl font-semibold">
                       ${(p.price_cents / 100).toFixed(2)}
                     </div>
 
-                    <div className="flex items-center justify-between rounded-xl border border-gray-200 p-2">
+                    <div className="flex items-center justify-between rounded-xl border border-slate-200 p-2">
                       <button
                         type="button"
-                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-lg transition hover:bg-slate-50"
                         onClick={() => decreaseQty(p.id)}
                       >
                         −
@@ -157,7 +182,7 @@ export default function DemoPage() {
 
                       <button
                         type="button"
-                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-lg transition hover:bg-gray-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-lg transition hover:bg-slate-50"
                         onClick={() => increaseQty(p.id)}
                       >
                         +
@@ -169,27 +194,27 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-sm lg:sticky lg:top-8">
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm lg:sticky lg:top-8">
             <div className="mb-6">
-              <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-gray-500">
+              <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
                 Purchase Summary
               </p>
               <h2 className="text-2xl font-semibold tracking-tight">
                 Schedule this order
               </h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
+              <p className="mt-2 text-sm leading-6 text-slate-600">
                 Authorize your card now. You will only be charged on your selected date.
               </p>
             </div>
 
-            <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-              <div className="flex items-center justify-between text-sm text-gray-500">
+            <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>Items selected</span>
                 <span>{itemCount}</span>
               </div>
 
-              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                <span className="text-sm text-gray-500">Total</span>
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                <span className="text-sm text-slate-500">Total</span>
                 <span className="text-2xl font-semibold">
                   ${(total / 100).toFixed(2)}
                 </span>
@@ -197,11 +222,11 @@ export default function DemoPage() {
             </div>
 
             <div className="mt-6">
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
                 Choose your payday
               </label>
               <input
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-black"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
@@ -211,14 +236,13 @@ export default function DemoPage() {
             <button
               disabled={!total || !date || loading}
               onClick={startCheckout}
-              className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-3 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Starting checkout...' : 'Authorize & Schedule'}
             </button>
 
-            <p className="mt-4 text-xs leading-5 text-gray-500">
-              Demo only. Your payment method is securely authorized and your purchase is
-              scheduled for the date you choose.
+            <p className="mt-4 text-xs leading-5 text-slate-500">
+              Demo only. Save a payment method securely now and charge on the date you choose.
             </p>
           </aside>
         </div>
