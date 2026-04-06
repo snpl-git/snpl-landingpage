@@ -23,7 +23,8 @@ jobs:
           HTTP_STATUS=$(curl --fail --show-error -s -X POST \
             "$FUNCTION_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"cron_token\":\"${CRON_TOKEN}\"}" \
+            -H "Authorization: Bearer ${CRON_TOKEN}" \
+            -d "{}" \
             -D headers.txt \
             -o response.json \
             -w "%{http_code}")
