@@ -1,4 +1,21 @@
-export default function Success() {
+'use client'
+
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+
+function SuccessContent() {
+  const search = useSearchParams()
+  const product = search.get('product') || 'Your purchase'
+  const date = search.get('date') || ''
+
+  const formattedDate = date
+    ? new Date(`${date}T12:00:00`).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'your selected date'
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <section className="bg-slate-900 text-white">
@@ -23,29 +40,29 @@ export default function Success() {
             </div>
 
             <h2 className="text-2xl font-semibold tracking-tight">
-              Your purchase is scheduled
+              {product} is scheduled
             </h2>
 
             <p className="mt-4 text-base leading-7 text-slate-600">
-              In this demo, your payment method has been securely authorized in Stripe test mode.
-              Your scheduled payment will be processed on the date you selected.
+              Your payment method has been securely authorized in Stripe test mode.
+              This purchase is scheduled for <span className="font-medium text-slate-900">{formattedDate}</span>.
             </p>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Step 1</p>
-              <p className="mt-2 font-medium">Product selected</p>
+              <p className="text-sm font-medium text-slate-500">Product</p>
+              <p className="mt-2 font-medium">{product}</p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Step 2</p>
-              <p className="mt-2 font-medium">Card authorized</p>
+              <p className="text-sm font-medium text-slate-500">Authorized</p>
+              <p className="mt-2 font-medium">Card saved securely</p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Step 3</p>
-              <p className="mt-2 font-medium">Payment scheduled</p>
+              <p className="text-sm font-medium text-slate-500">Scheduled for</p>
+              <p className="mt-2 font-medium">{formattedDate}</p>
             </div>
           </div>
         </div>
@@ -80,5 +97,13 @@ export default function Success() {
         </div>
       </section>
     </main>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-slate-600">Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   )
 }
