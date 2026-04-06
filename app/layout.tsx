@@ -2,14 +2,18 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Schedule Now, Pay Later – Holiday Edition",
-  description: "Lock in holiday gifts now. Pay when you’re ready.",
+  title: "SNPL",
+  description: "Buy now. Pay on your schedule.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body className="bg-cream text-gray-900">{children}</body>
+      <body className="bg-white text-black antialiased">{children}</body>
     </html>
   );
 }
