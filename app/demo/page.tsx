@@ -38,16 +38,16 @@ export default function DemoPage() {
   }, [cart])
 
   function decreaseQty(id: string) {
-    setCart((c) => ({
-      ...c,
-      [id]: Math.max(0, (c[id] || 0) - 1),
+    setCart((current) => ({
+      ...current,
+      [id]: Math.max(0, (current[id] || 0) - 1),
     }))
   }
 
   function increaseQty(id: string) {
-    setCart((c) => ({
-      ...c,
-      [id]: (c[id] || 0) + 1,
+    setCart((current) => ({
+      ...current,
+      [id]: (current[id] || 0) + 1,
     }))
   }
 
@@ -86,8 +86,8 @@ export default function DemoPage() {
       } else {
         alert(json.error || 'Failed to start checkout')
       }
-    } catch (err) {
-      console.error(err)
+    } catch (error) {
+      console.error(error)
       alert('Something went wrong.')
     } finally {
       setLoading(false)
@@ -96,24 +96,25 @@ export default function DemoPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      
-      {/* HEADER */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-12">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
+            Interactive Demo
+          </p>
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
+            Step 1
+          </p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Schedule your purchase
           </h1>
-          <p className="mt-3 text-slate-300">
-            Choose a product, pick your payday, and authorize your card.
+          <p className="mt-3 max-w-2xl text-slate-300">
+            Choose a product, pick your payday, and continue to authorization.
           </p>
         </div>
       </section>
 
-      {/* CONTENT */}
       <section className="mx-auto max-w-6xl px-6 py-10">
         <div className="grid gap-10 lg:grid-cols-[1.5fr_0.9fr]">
-          
-          {/* PRODUCTS */}
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Products</h2>
@@ -126,7 +127,7 @@ export default function DemoPage() {
               {products.map((p) => (
                 <div
                   key={p.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition"
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
                 >
                   <div className="aspect-[4/3] bg-slate-100">
                     {p.image_url ? (
@@ -136,7 +137,7 @@ export default function DemoPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-slate-400 text-sm">
+                      <div className="flex h-full items-center justify-center text-sm text-slate-400">
                         No image
                       </div>
                     )}
@@ -145,24 +146,24 @@ export default function DemoPage() {
                   <div className="p-4">
                     <div className="font-medium">{p.name}</div>
 
-                    <div className="mt-1 text-slate-500 text-sm">
+                    <div className="mt-1 text-sm text-slate-500">
                       ${(p.price_cents / 100).toFixed(2)}
                     </div>
 
                     <div className="mt-4 flex items-center justify-between">
                       <button
-                        className="w-9 h-9 border rounded-lg"
+                        type="button"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50"
                         onClick={() => decreaseQty(p.id)}
                       >
                         −
                       </button>
 
-                      <span className="font-medium">
-                        {cart[p.id] || 0}
-                      </span>
+                      <span className="font-medium">{cart[p.id] || 0}</span>
 
                       <button
-                        className="w-9 h-9 border rounded-lg"
+                        type="button"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition hover:bg-slate-50"
                         onClick={() => increaseQty(p.id)}
                       >
                         +
@@ -174,11 +175,8 @@ export default function DemoPage() {
             </div>
           </div>
 
-          {/* SUMMARY */}
-          <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">
-              Summary
-            </h2>
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm lg:sticky lg:top-8">
+            <h2 className="text-xl font-semibold">Summary</h2>
 
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <div className="flex justify-between">
@@ -186,9 +184,9 @@ export default function DemoPage() {
                 <span>{itemCount}</span>
               </div>
 
-              <div className="flex justify-between border-t pt-3">
+              <div className="flex justify-between border-t border-slate-200 pt-3">
                 <span>Total</span>
-                <span className="font-semibold text-lg">
+                <span className="text-lg font-semibold text-slate-900">
                   ${(total / 100).toFixed(2)}
                 </span>
               </div>
@@ -202,14 +200,14 @@ export default function DemoPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-2 w-full border rounded-lg px-3 py-2"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition focus:border-slate-900"
               />
             </div>
 
             <button
               disabled={!total || !date || loading}
               onClick={startCheckout}
-              className="mt-6 w-full bg-slate-900 text-white py-3 rounded-lg disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Starting...' : 'Continue'}
             </button>
@@ -218,10 +216,8 @@ export default function DemoPage() {
               You’ll authorize your card next. You are not charged today.
             </p>
           </aside>
-
         </div>
       </section>
-
     </main>
   )
 }
