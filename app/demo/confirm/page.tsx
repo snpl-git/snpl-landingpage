@@ -19,19 +19,28 @@ function ConfirmFormInner() {
   const returnUrl = useMemo(() => {
     const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const url = new URL('/demo/success', base)
+
+    const product = search.get('product') || ''
+    const date = search.get('date') || ''
+
     if (orderId) url.searchParams.set('order', orderId)
+    if (product) url.searchParams.set('product', product)
+    if (date) url.searchParams.set('date', date)
+
     return url.toString()
-  }, [orderId])
+  }, [orderId, search])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
 
     setLoading(true)
+
     const { error } = await stripe.confirmSetup({
       elements,
       confirmParams: { return_url: returnUrl },
     })
+
     setLoading(false)
 
     if (error) {
@@ -44,13 +53,16 @@ function ConfirmFormInner() {
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-5xl px-6 py-14">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
+            Interactive Demo
+          </p>
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
             Step 2
           </p>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             Authorize your card
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Your card is securely authorized now and charged on the date you selected.
+            Confirm your purchase and save your payment method for the date you selected.
           </p>
         </div>
       </section>
@@ -63,7 +75,7 @@ function ConfirmFormInner() {
                 Confirm authorization
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                This demo uses Stripe test mode. Use the test card details shown on this page.
+                Confirm your authorization to complete the scheduled purchase flow.
               </p>
             </div>
 
@@ -88,10 +100,10 @@ function ConfirmFormInner() {
                 Demo Card
               </p>
               <h2 className="text-2xl font-semibold tracking-tight">
-                Test payment details
+                Demo card details
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Use these test credentials to complete the authorization.
+                Use these details to complete the authorization.
               </p>
             </div>
 
@@ -134,9 +146,9 @@ function ConfirmFormInner() {
                 What happens next
               </h3>
               <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-                <li>• Your card is securely saved in Stripe test mode</li>
-                <li>• Your scheduled payment remains tied to your selected date</li>
-                <li>• You are not charged immediately during authorization</li>
+                <li>• Your card is saved securely</li>
+                <li>• Your scheduled payment stays tied to your selected date</li>
+                <li>• You are not charged today during authorization</li>
               </ul>
             </div>
           </aside>
