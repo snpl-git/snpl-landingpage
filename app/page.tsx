@@ -7,6 +7,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-white text-slate-900">
       <SiteHeader />
 
+      {/* HERO */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
@@ -24,14 +25,14 @@ export default function HomePage() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/demo"
-              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition hover:bg-slate-100"
+              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100 hover:shadow-lg active:scale-[0.98]"
             >
               Try the Demo
             </Link>
 
             <a
               href="#waitlist"
-              className="inline-flex rounded-xl border border-slate-500 px-6 py-3 text-white transition hover:bg-slate-800"
+              className="inline-flex rounded-xl border border-slate-500 px-6 py-3 text-white transition duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-[0.98]"
             >
               Get Early Access
             </a>
@@ -39,16 +40,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* PREVIEW IMAGE */}
       <section className="mx-auto max-w-6xl px-6 py-14">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl transition duration-300 hover:shadow-3xl">
           <img
             src="/demo-preview.png"
             alt="SNPL demo preview"
-            className="w-full object-cover"
+            className="w-full object-cover transition duration-500 hover:scale-[1.02]"
           />
         </div>
       </section>
 
+      {/* HOW IT WORKS */}
       <section className="border-y border-slate-200 bg-slate-50">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="mb-10 text-center">
@@ -66,7 +69,7 @@ export default function HomePage() {
             ].map(([step, title, text]) => (
               <div
                 key={step}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                   {step}
@@ -79,6 +82,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* POSITIONING */}
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
           Timing matters
@@ -91,6 +95,7 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* DEMO CTA */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">
@@ -104,7 +109,7 @@ export default function HomePage() {
           <div className="mt-8">
             <Link
               href="/demo"
-              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition hover:bg-slate-100"
+              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100 hover:shadow-lg active:scale-[0.98]"
             >
               Launch Demo
             </Link>
@@ -112,6 +117,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* WAITLIST */}
       <section id="waitlist" className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
           Get early access
@@ -121,7 +127,7 @@ export default function HomePage() {
           We’re building version 2 now. Join the waitlist to follow progress and be first to try what comes next.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-8 transition duration-200 hover:scale-[1.01]">
           <WaitlistForm />
         </div>
       </section>
