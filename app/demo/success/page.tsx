@@ -2,28 +2,7 @@
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Link from "next/link"
-
-<div className="border-b border-slate-200 bg-white">
-  <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-    
-    <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
-      <div className="h-6 w-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-sm">
-        ✓
-      </div>
-      SNPL
-    </Link>
-
-    <Link
-      href="/demo"
-      className="text-sm text-slate-600 hover:text-slate-900"
-    >
-      Demo
-    </Link>
-
-  </div>
-</div>
-
+import SiteHeader from '@/components/site-header'
 
 function SuccessContent() {
   const search = useSearchParams()
@@ -40,6 +19,8 @@ function SuccessContent() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
+      <SiteHeader />
+
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-16 text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
@@ -66,8 +47,8 @@ function SuccessContent() {
             </h2>
 
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Your payment method has been securely authorized in Stripe test mode.
-              This purchase is scheduled for <span className="font-medium text-slate-900">{formattedDate}</span>.
+              Your payment method has been securely authorized. This purchase is scheduled for{' '}
+              <span className="font-medium text-slate-900">{formattedDate}</span>.
             </p>
           </div>
 
