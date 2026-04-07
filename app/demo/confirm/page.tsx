@@ -4,6 +4,28 @@ import { Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import Link from "next/link"
+
+<div className="border-b border-slate-200 bg-white">
+  <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
+    
+    <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
+      <div className="h-6 w-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-sm">
+        ✓
+      </div>
+      SNPL
+    </Link>
+
+    <Link
+      href="/demo"
+      className="text-sm text-slate-600 hover:text-slate-900"
+    >
+      Demo
+    </Link>
+
+  </div>
+</div>
+
 
 export const dynamic = 'force-dynamic'
 
