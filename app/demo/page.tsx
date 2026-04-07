@@ -2,27 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
-import Link from "next/link"
-
-<div className="border-b border-slate-200 bg-white">
-  <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-    
-    <Link href="/" className="flex items-center gap-2 font-semibold text-slate-900">
-      <div className="h-6 w-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-sm">
-        ✓
-      </div>
-      SNPL
-    </Link>
-
-    <Link
-      href="/demo"
-      className="text-sm text-slate-600 hover:text-slate-900"
-    >
-      Demo
-    </Link>
-
-  </div>
-</div>
+import SiteHeader from '@/components/site-header'
 
 type Product = {
   id: string
@@ -117,6 +97,8 @@ export default function DemoPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
+      <SiteHeader />
+
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
