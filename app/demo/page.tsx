@@ -199,6 +199,7 @@ export default function DemoPage() {
 
                           <input
                             type="number"
+                            inputMode="numeric"
                             min={0}
                             value={cart[p.id] || 0}
                             onChange={(e) => {
