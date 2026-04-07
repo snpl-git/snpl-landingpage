@@ -82,28 +82,6 @@ function ConfirmFormInner() {
               </p>
             </div>
 
-            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    Secure
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    No charge today
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    On your date
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <PaymentElement />
