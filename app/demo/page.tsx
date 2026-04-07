@@ -100,7 +100,6 @@ export default function DemoPage() {
     <main className="min-h-screen bg-white text-slate-900">
       <SiteHeader />
 
-      {/* HEADER */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
@@ -118,11 +117,12 @@ export default function DemoPage() {
         </div>
       </section>
 
-      {/* CONTENT */}
       <section className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Pick a product, choose your date, then continue to authorization.
+        </div>
+
         <div className="grid gap-10 lg:grid-cols-[1.5fr_0.9fr]">
-          
-          {/* PRODUCTS */}
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Products</h2>
@@ -132,61 +132,68 @@ export default function DemoPage() {
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {products.map((p) => (
-                <div
-                  key={p.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
-                >
-                  <div className="aspect-[4/3] bg-slate-100">
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-400">
-                        No image
+              {products.map((p) => {
+                const isSelected = (cart[p.id] || 0) > 0
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                      isSelected
+                        ? 'border-slate-900 ring-1 ring-slate-900/10'
+                        : 'border-slate-200'
+                    }`}
+                  >
+                    <div className="aspect-[4/3] bg-slate-100">
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                          No image
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4">
+                      <div className="font-medium">{p.name}</div>
+
+                      <div className="mt-1 text-sm text-slate-500">
+                        ${(p.price_cents / 100).toFixed(2)}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="p-4">
-                    <div className="font-medium">{p.name}</div>
+                      <div className="mt-4 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => decreaseQty(p.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:scale-95"
+                        >
+                          −
+                        </button>
 
-                    <div className="mt-1 text-sm text-slate-500">
-                      ${(p.price_cents / 100).toFixed(2)}
-                    </div>
+                        <span className="font-medium">
+                          {cart[p.id] || 0}
+                        </span>
 
-                    <div className="mt-4 flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => decreaseQty(p.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"
-                      >
-                        −
-                      </button>
-
-                      <span className="font-medium">
-                        {cart[p.id] || 0}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => increaseQty(p.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"
-                      >
-                        +
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => increaseQty(p.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:scale-95"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
-          {/* SUMMARY */}
-          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm lg:sticky lg:top-8">
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm transition duration-200 lg:sticky lg:top-8">
             <h2 className="text-xl font-semibold">Summary</h2>
 
             <div className="mt-4 space-y-3 text-sm text-slate-600">
@@ -211,14 +218,14 @@ export default function DemoPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition duration-150 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
               />
             </div>
 
             <button
               disabled={!total || !date || loading}
               onClick={startCheckout}
-              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white hover:bg-slate-800 disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white transition duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Starting...' : 'Continue'}
             </button>
@@ -227,7 +234,6 @@ export default function DemoPage() {
               You’ll authorize your card next. You are not charged today.
             </p>
           </aside>
-
         </div>
       </section>
     </main>
