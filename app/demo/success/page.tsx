@@ -82,35 +82,34 @@ function SuccessContent() {
             </ul>
           </div>
         </div>
+<div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 text-center">
+  <div className="mx-auto max-w-2xl">
+    <h3 className="text-2xl font-semibold tracking-tight">
+      Want this for real purchases?
+    </h3>
 
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 text-center">
-          <div className="mx-auto max-w-2xl">
-            <h3 className="text-2xl font-semibold tracking-tight">
-              Want early access to the full product?
-            </h3>
+    <p className="mt-4 text-base leading-7 text-slate-600">
+      Join the waitlist to get early access when SNPL launches, follow the build,
+      and help shape what comes next.
+    </p>
 
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              We’re building version 2 of SNPL now. Join the waitlist to get updates,
-              follow progress, and be first to try what comes next.
-            </p>
+    <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+      <a
+        href="/#waitlist"
+        className="inline-flex rounded-xl bg-slate-900 px-6 py-3 text-white transition hover:bg-slate-800"
+      >
+        Join the Waitlist
+      </a>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <a
-                href="/#waitlist"
-                className="inline-flex rounded-xl bg-slate-900 px-6 py-3 text-white transition hover:bg-slate-800"
-              >
-                Join the Waitlist
-              </a>
-
-              <a
-                href="/demo"
-                className="inline-flex rounded-xl border border-slate-300 px-6 py-3 text-slate-900 transition hover:bg-slate-50"
-              >
-                Back to Demo
-              </a>
-            </div>
-          </div>
-        </div>
+      <a
+        href="/demo"
+        className="inline-flex rounded-xl border border-slate-300 px-6 py-3 text-slate-900 transition hover:bg-slate-50"
+      >
+        Back to Demo
+      </a>
+    </div>
+  </div>
+</div>
       </section>
     </main>
   )
