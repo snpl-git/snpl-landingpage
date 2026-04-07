@@ -21,3 +21,15 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Remove number input arrows (Chrome, Safari, Edge) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Remove number input arrows (Firefox) */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
