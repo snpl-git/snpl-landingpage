@@ -24,54 +24,67 @@ function SuccessContent() {
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-16 text-center">
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
-            Authorization Complete
+            Authorization Confirmed
           </p>
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            You’re all set
+            Purchase scheduled
           </h1>
           <p className="mt-4 mx-auto max-w-2xl text-lg leading-8 text-slate-300">
-            Your card was successfully authorized and your demo purchase is now scheduled.
+            Your payment method has been securely saved and this purchase is now scheduled.
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-6 py-12">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white text-2xl">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-2xl text-slate-900">
               ✓
             </div>
 
             <h2 className="text-2xl font-semibold tracking-tight">
-              {product} is scheduled
+              Confirmation details
             </h2>
 
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Your payment method has been securely authorized. This purchase is scheduled for{' '}
-              <span className="font-medium text-slate-900">{formattedDate}</span>.
+              Your authorization was successful. The purchase below is scheduled for the date you selected.
             </p>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center">
               <p className="text-sm font-medium text-slate-500">Product</p>
-              <p className="mt-2 font-medium">{product}</p>
+              <p className="mt-2 font-medium text-slate-900">{product}</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Authorized</p>
-              <p className="mt-2 font-medium">Card saved securely</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center">
+              <p className="text-sm font-medium text-slate-500">Status</p>
+              <p className="mt-2 font-medium text-slate-900">Authorized</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center">
               <p className="text-sm font-medium text-slate-500">Scheduled for</p>
-              <p className="mt-2 font-medium">{formattedDate}</p>
+              <p className="mt-2 font-medium text-slate-900">{formattedDate}</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mx-auto max-w-2xl text-center">
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8">
+          <div className="mx-auto max-w-2xl">
+            <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+              What happens next
+            </h3>
+
+            <ul className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
+              <li>• Your payment method has been securely authorized</li>
+              <li>• You were not charged today</li>
+              <li>• Your purchase remains scheduled for your selected date</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 text-center">
+          <div className="mx-auto max-w-2xl">
             <h3 className="text-2xl font-semibold tracking-tight">
               Want early access to the full product?
             </h3>
