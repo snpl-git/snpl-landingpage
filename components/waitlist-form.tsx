@@ -15,7 +15,7 @@ export default function WaitlistForm() {
     try {
       setLoading(true);
 
-      await fetch("/api/subscribe", {
+      const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -27,10 +27,16 @@ export default function WaitlistForm() {
         }),
       });
 
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to join waitlist");
+      }
+
       setSubmitted(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Something went wrong. Please try again.");
+      alert(error.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
