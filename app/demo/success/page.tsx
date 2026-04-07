@@ -38,7 +38,7 @@ function SuccessContent() {
       <section className="mx-auto max-w-4xl px-6 py-12">
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-2xl text-slate-900">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-slate-900 bg-slate-900 text-2xl text-white">
               ✓
             </div>
 
