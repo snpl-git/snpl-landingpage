@@ -7,7 +7,6 @@ export default function HomePage() {
     <main className="min-h-screen bg-white text-slate-900">
       <SiteHeader />
 
-      {/* HERO */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
@@ -25,14 +24,14 @@ export default function HomePage() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/demo"
-              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100 hover:shadow-lg active:scale-[0.98]"
+              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100"
             >
               Try the Demo
             </Link>
 
             <a
               href="#waitlist"
-              className="inline-flex rounded-xl border border-slate-500 px-6 py-3 text-white transition duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-[0.98]"
+              className="inline-flex rounded-xl border border-slate-500 px-6 py-3 text-white transition duration-200 hover:bg-slate-800"
             >
               Get Early Access
             </a>
@@ -40,18 +39,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PREVIEW IMAGE */}
       <section className="mx-auto max-w-6xl px-6 py-14">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl transition duration-300 hover:shadow-3xl">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <img
             src="/demo-preview.png"
             alt="SNPL demo preview"
-            className="w-full object-cover transition duration-500 hover:scale-[1.02]"
+            className="w-full object-cover"
           />
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
       <section className="border-y border-slate-200 bg-slate-50">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="mb-10 text-center">
@@ -69,7 +66,7 @@ export default function HomePage() {
             ].map(([step, title, text]) => (
               <div
                 key={step}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+                className="rounded-2xl border border-slate-200 bg-white p-5"
               >
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                   {step}
@@ -82,7 +79,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* POSITIONING */}
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
           Timing matters
@@ -95,7 +91,6 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* DEMO CTA */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">
@@ -109,7 +104,7 @@ export default function HomePage() {
           <div className="mt-8">
             <Link
               href="/demo"
-              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100 hover:shadow-lg active:scale-[0.98]"
+              className="inline-flex rounded-xl bg-white px-6 py-3 text-slate-900 transition duration-200 hover:bg-slate-100"
             >
               Launch Demo
             </Link>
@@ -117,17 +112,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* WAITLIST */}
-      <section id="waitlist" className="mx-auto max-w-4xl px-6 py-20 text-center">
-        <h2 className="text-3xl font-semibold tracking-tight">
-          Get early access
-        </h2>
-
-        <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-          We’re building version 2 now. Join the waitlist to follow progress and be first to try what comes next.
+      <section id="waitlist" className="mx-auto max-w-5xl px-6 py-20 text-center">
+        <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
+          Early access
         </p>
 
-        <div className="mt-8 transition duration-200 hover:scale-[1.01]">
+        <h2 className="mt-3 text-4xl font-semibold tracking-tight">
+          Be first to try SNPL
+        </h2>
+
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+          Join the waitlist to get launch updates, early access, and help shape what comes next.
+        </p>
+
+        <div className="mx-auto mt-8 grid max-w-3xl gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Early access</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Be first to try the product as it evolves.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Launch updates</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Follow the build and know what’s coming next.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Shape version 2</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Help influence how the product grows from here.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-10">
           <WaitlistForm />
         </div>
       </section>
