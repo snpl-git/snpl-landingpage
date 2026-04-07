@@ -125,14 +125,14 @@ function ConfirmFormInner() {
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     Expiration
                   </p>
-                  <p className="mt-1 text-base font-medium">Any future date</p>
+                  <p className="mt-1 text-base font-medium">12/34</p>
                 </div>
 
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     CVC
                   </p>
-                  <p className="mt-1 text-base font-medium">Any 3 digits</p>
+                  <p className="mt-1 text-base font-medium">123</p>
                 </div>
               </div>
 
@@ -140,7 +140,7 @@ function ConfirmFormInner() {
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                   ZIP code
                 </p>
-                <p className="mt-1 text-base font-medium">Any 5 digits</p>
+                <p className="mt-1 text-base font-medium">12345</p>
               </div>
             </div>
 
