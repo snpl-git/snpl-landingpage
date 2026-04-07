@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SiteHeader from '@/components/site-header'
 
@@ -16,6 +16,17 @@ function SuccessContent() {
         year: 'numeric',
       })
     : 'your selected date'
+
+  const calendarDate = date ? date.replaceAll('-', '') : ''
+  const calendarTitle = encodeURIComponent(`Scheduled Payment - ${product}`)
+  const calendarDetails = encodeURIComponent(
+    `Your SNPL payment for ${product} is scheduled for ${formattedDate}.`
+  )
+
+  const googleCalendarUrl = useMemo(() => {
+    if (!calendarDate) return '#'
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${calendarTitle}&dates=${calendarDate}/${calendarDate}&details=${calendarDetails}`
+  }, [calendarDate, calendarTitle, calendarDetails])
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -67,6 +78,17 @@ function SuccessContent() {
               <p className="mt-2 font-medium text-slate-900">{formattedDate}</p>
             </div>
           </div>
+
+          <div className="mt-8 flex justify-center">
+            <a
+              href={googleCalendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-xl border border-slate-300 bg-white px-5 py-3 text-slate-900 transition hover:bg-slate-50"
+            >
+              Add to calendar
+            </a>
+          </div>
         </div>
 
         <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8">
@@ -79,37 +101,41 @@ function SuccessContent() {
               <li>• Your payment method has been securely authorized</li>
               <li>• You were not charged today</li>
               <li>• Your purchase remains scheduled for your selected date</li>
+              <li>• In a future version, you’ll be able to manage or cancel scheduled purchases from your account</li>
+              <li>• Your purchase will be processed on your selected date based on product availability</li>
+              <li>• If an item is unavailable, you’ll be notified with next steps</li>
             </ul>
           </div>
         </div>
-<div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 text-center">
-  <div className="mx-auto max-w-2xl">
-    <h3 className="text-2xl font-semibold tracking-tight">
-      Want this for real purchases?
-    </h3>
 
-    <p className="mt-4 text-base leading-7 text-slate-600">
-      Join the waitlist to get early access when SNPL launches, follow the build,
-      and help shape what comes next.
-    </p>
+        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 text-center">
+          <div className="mx-auto max-w-2xl">
+            <h3 className="text-2xl font-semibold tracking-tight">
+              Want this for real purchases?
+            </h3>
 
-    <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-      <a
-        href="/#waitlist"
-        className="inline-flex rounded-xl bg-slate-900 px-6 py-3 text-white transition hover:bg-slate-800"
-      >
-        Join the Waitlist
-      </a>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              Join the waitlist to get early access when SNPL launches, follow the build,
+              and help shape what comes next.
+            </p>
 
-      <a
-        href="/demo"
-        className="inline-flex rounded-xl border border-slate-300 px-6 py-3 text-slate-900 transition hover:bg-slate-50"
-      >
-        Back to Demo
-      </a>
-    </div>
-  </div>
-</div>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <a
+                href="/#waitlist"
+                className="inline-flex rounded-xl bg-slate-900 px-6 py-3 text-white transition hover:bg-slate-800"
+              >
+                Join the Waitlist
+              </a>
+
+              <a
+                href="/demo"
+                className="inline-flex rounded-xl border border-slate-300 px-6 py-3 text-slate-900 transition hover:bg-slate-50"
+              >
+                Back to Demo
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   )
