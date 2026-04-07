@@ -118,7 +118,7 @@ function ConfirmFormInner() {
               </button>
 
               <p className="text-center text-xs leading-5 text-slate-500">
-                By continuing, you are authorizing this payment method for the scheduled purchase flow.
+                Powered by Stripe. Your payment details are encrypted and secure.
               </p>
             </form>
           </div>
