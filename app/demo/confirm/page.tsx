@@ -125,7 +125,7 @@ function ConfirmFormInner() {
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     Expiration
                   </p>
-                  <p className="mt-1 text-base font-medium">12/34</p>
+                  <p className="mt-1 text-base font-medium">12 / 34</p>
                 </div>
 
                 <div>
