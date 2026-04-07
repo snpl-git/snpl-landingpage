@@ -88,26 +88,17 @@ function ConfirmFormInner() {
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     Secure
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    Card details are protected
-                  </p>
                 </div>
 
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     No charge today
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    Authorization only
-                  </p>
                 </div>
 
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                     On your date
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
-                    Charged when scheduled
                   </p>
                 </div>
               </div>
