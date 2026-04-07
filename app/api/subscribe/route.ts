@@ -16,12 +16,9 @@ const Body = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("subscribe payload received:", body);
-
     const parsed = Body.safeParse(body);
 
     if (!parsed.success) {
-      console.error("invalid subscribe body:", parsed.error.flatten());
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 }
@@ -30,17 +27,19 @@ export async function POST(req: Request) {
 
     const { firstName, email, useCase } = parsed.data;
 
-    const payload = {
-      email: email.toLowerCase(),
-      first_name: firstName || null,
-      use_case: useCase || null,
-    };
-
-    console.log("subscribe upsert payload:", payload);
+    const safeName = firstName?.trim() || "Waitlist User";
 
     const { data, error } = await supabase
       .from("waitlist_signups")
-      .upsert(payload, { onConflict: "email" })
+      .upsert(
+        {
+          name: safeName,
+          first_name: safeName,
+          email: email.toLowerCase(),
+          use_case: useCase || null,
+        },
+        { onConflict: "email" }
+      )
       .select();
 
     if (error) {
@@ -50,8 +49,6 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-
-    console.log("waitlist upsert success:", data);
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
