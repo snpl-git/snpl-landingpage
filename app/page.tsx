@@ -59,7 +59,7 @@ export default function HomePage() {
 
           <div className="grid gap-4 md:grid-cols-4">
             {[
-              ["1", "Choose", "Pick the product you want."],
+              ["1", "Shop", "Pick the product you want."],
               ["2", "Schedule", "Select the date that works for you."],
               ["3", "Authorize", "Save your payment method securely."],
               ["4", "Done", "Your purchase is charged on that date."],
