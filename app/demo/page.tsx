@@ -39,6 +39,17 @@ export default function DemoPage() {
     return Object.values(cart).reduce((sum, qty) => sum + qty, 0)
   }, [cart])
 
+  const selectedItems = useMemo(() => {
+    return products
+      .filter((p) => (cart[p.id] || 0) > 0)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        qty: cart[p.id] || 0,
+        subtotal: (cart[p.id] || 0) * p.price_cents,
+      }))
+  }, [products, cart])
+
   function decreaseQty(id: string) {
     setCart((current) => ({
       ...current,
@@ -57,11 +68,7 @@ export default function DemoPage() {
     try {
       setLoading(true)
 
-      const selectedProducts = products
-        .filter((p) => (cart[p.id] || 0) > 0)
-        .map((p) => p.name)
-
-      const primaryProduct = selectedProducts[0] || 'Your purchase'
+      const primaryProduct = selectedItems[0]?.name || 'Your purchase'
 
       const res = await fetch('/api/checkout/start', {
         method: 'POST',
@@ -138,10 +145,10 @@ export default function DemoPage() {
                 return (
                   <div
                     key={p.id}
-                    className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                    className={`overflow-hidden rounded-2xl border bg-white transition duration-150 ${
                       isSelected
-                        ? 'border-slate-900 ring-1 ring-slate-900/10'
-                        : 'border-slate-200'
+                        ? 'border-slate-900 bg-slate-50'
+                        : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
                     <div className="aspect-[4/3] bg-slate-100">
@@ -159,32 +166,41 @@ export default function DemoPage() {
                     </div>
 
                     <div className="p-4">
-                      <div className="font-medium">{p.name}</div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="font-medium">{p.name}</div>
+                        {isSelected ? (
+                          <span className="rounded-full bg-slate-900 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white">
+                            Selected
+                          </span>
+                        ) : null}
+                      </div>
 
                       <div className="mt-1 text-sm text-slate-500">
                         ${(p.price_cents / 100).toFixed(2)}
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => decreaseQty(p.id)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:scale-95"
-                        >
-                          −
-                        </button>
+                      <div className="mt-3 border-t border-slate-100 pt-3">
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => decreaseQty(p.id)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:bg-slate-200"
+                          >
+                            −
+                          </button>
 
-                        <span className="font-medium">
-                          {cart[p.id] || 0}
-                        </span>
+                          <span className="font-medium">
+                            {cart[p.id] || 0}
+                          </span>
 
-                        <button
-                          type="button"
-                          onClick={() => increaseQty(p.id)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:scale-95"
-                        >
-                          +
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => increaseQty(p.id)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:bg-slate-200"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -193,7 +209,7 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm transition duration-200 lg:sticky lg:top-8">
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 lg:sticky lg:top-8">
             <h2 className="text-xl font-semibold">Summary</h2>
 
             <div className="mt-4 space-y-3 text-sm text-slate-600">
@@ -202,12 +218,44 @@ export default function DemoPage() {
                 <span>{itemCount}</span>
               </div>
 
-              <div className="flex justify-between border-t pt-3">
+              <div className="flex justify-between border-t border-slate-200 pt-3">
                 <span>Total</span>
                 <span className="text-lg font-semibold text-slate-900">
                   ${(total / 100).toFixed(2)}
                 </span>
               </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-medium text-slate-900">Selected items</p>
+
+              {selectedItems.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  No products selected yet.
+                </p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {selectedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start justify-between gap-4"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Qty {item.qty}
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-medium text-slate-900">
+                        ${(item.subtotal / 100).toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-6">
@@ -225,7 +273,7 @@ export default function DemoPage() {
             <button
               disabled={!total || !date || loading}
               onClick={startCheckout}
-              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white transition duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white transition duration-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Starting...' : 'Continue'}
             </button>
