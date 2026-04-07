@@ -47,8 +47,8 @@ function SuccessContent() {
             </h2>
 
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Your payment method has been securely authorized.
-              This purchase is scheduled for <span className="font-medium text-slate-900">{formattedDate}</span>.
+              Your payment method has been securely authorized. This purchase is scheduled for{" "}
+              <span className="font-medium text-slate-900">{formattedDate}</span>.
             </p>
           </div>
 
