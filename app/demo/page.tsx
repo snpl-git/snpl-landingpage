@@ -167,7 +167,15 @@ export default function DemoPage() {
 
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="font-medium">{p.name}</div>
+                        <div>
+                          <div className="font-medium">{p.name}</div>
+                          {isSelected && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Added to schedule
+                            </p>
+                          )}
+                        </div>
+
                         {isSelected ? (
                           <span className="rounded-full bg-slate-900 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white">
                             Selected
