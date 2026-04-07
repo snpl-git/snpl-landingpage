@@ -1,10 +1,12 @@
 import Link from "next/link";
 import WaitlistForm from "@/components/waitlist-form";
+import SiteHeader from "@/components/site-header";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* HERO */}
+      <SiteHeader />
+
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
@@ -37,18 +39,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PREVIEW */}
       <section className="mx-auto max-w-6xl px-6 py-14">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
           <img
             src="/demo-preview.png"
-            alt="SNPL Demo Preview"
+            alt="SNPL demo preview"
             className="w-full object-cover"
           />
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
       <section className="border-y border-slate-200 bg-slate-50">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="mb-10 text-center">
@@ -79,7 +79,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* POSITIONING */}
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
           Timing matters
@@ -92,7 +91,6 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* DEMO CTA */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">
@@ -114,7 +112,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* WAITLIST */}
       <section id="waitlist" className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
           Get early access
