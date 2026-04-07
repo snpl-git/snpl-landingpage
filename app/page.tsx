@@ -18,7 +18,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            Choose what you want today. Pick the date that works for you.
+            Shop for what you want today. Pick the date that works for you.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
