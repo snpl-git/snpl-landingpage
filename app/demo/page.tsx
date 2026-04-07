@@ -176,11 +176,11 @@ export default function DemoPage() {
                           )}
                         </div>
 
-                        {isSelected ? (
+                        {isSelected && (
                           <span className="rounded-full bg-slate-900 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white">
                             Selected
                           </span>
-                        ) : null}
+                        )}
                       </div>
 
                       <div className="mt-1 text-sm text-slate-500">
@@ -188,23 +188,30 @@ export default function DemoPage() {
                       </div>
 
                       <div className="mt-3 border-t border-slate-100 pt-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <button
                             type="button"
                             onClick={() => decreaseQty(p.id)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:bg-slate-200"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 active:bg-slate-200"
                           >
                             −
                           </button>
 
-                          <span className="font-medium">
-                            {cart[p.id] || 0}
-                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={cart[p.id] || 0}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value) || 0)
+                              setCart((c) => ({ ...c, [p.id]: val }))
+                            }}
+                            className="w-14 text-center font-medium border border-transparent rounded focus:border-slate-300 focus:outline-none"
+                          />
 
                           <button
                             type="button"
                             onClick={() => increaseQty(p.id)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 transition duration-150 hover:bg-slate-100 active:bg-slate-200"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 active:bg-slate-200"
                           >
                             +
                           </button>
@@ -244,10 +251,7 @@ export default function DemoPage() {
               ) : (
                 <div className="mt-3 space-y-3">
                   {selectedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start justify-between gap-4"
-                    >
+                    <div key={item.id} className="flex justify-between">
                       <div>
                         <p className="text-sm font-medium text-slate-900">
                           {item.name}
@@ -256,7 +260,6 @@ export default function DemoPage() {
                           Qty {item.qty}
                         </p>
                       </div>
-
                       <p className="text-sm font-medium text-slate-900">
                         ${(item.subtotal / 100).toFixed(2)}
                       </p>
@@ -274,14 +277,14 @@ export default function DemoPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none transition duration-150 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
               />
             </div>
 
             <button
               disabled={!total || !date || loading}
               onClick={startCheckout}
-              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white transition duration-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-white hover:bg-slate-800 disabled:opacity-40"
             >
               {loading ? 'Starting...' : 'Continue'}
             </button>
