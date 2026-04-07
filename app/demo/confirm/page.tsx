@@ -65,21 +65,52 @@ function ConfirmFormInner() {
             Authorize your card
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Confirm your purchase and save your payment method for the date you selected.
+            Securely save your payment method now so your purchase can be charged on the date you selected.
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold tracking-tight">
                 Confirm authorization
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Confirm your authorization to complete the scheduled purchase flow.
+                Your payment method is securely saved for the scheduled purchase flow.
               </p>
+            </div>
+
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    Secure
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    Card details are protected
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    No charge today
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    Authorization only
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                    On your date
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    Charged when scheduled
+                  </p>
+                </div>
+              </div>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
@@ -94,23 +125,27 @@ function ConfirmFormInner() {
               >
                 {loading ? 'Authorizing...' : 'Confirm Authorization'}
               </button>
+
+              <p className="text-center text-xs leading-5 text-slate-500">
+                By continuing, you are authorizing this payment method for the scheduled purchase flow.
+              </p>
             </form>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+          <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6">
             <div className="mb-6">
               <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
                 Demo Card
               </p>
               <h2 className="text-2xl font-semibold tracking-tight">
-                Demo card details
+                Quick demo card
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Use these details to complete the authorization.
+                Use these details to complete the flow instantly.
               </p>
             </div>
 
-            <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                   Card number
@@ -146,12 +181,12 @@ function ConfirmFormInner() {
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="text-sm font-semibold text-slate-900">
-                What happens next
+                Security and control
               </h3>
               <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-                <li>• Your card is saved securely</li>
-                <li>• Your scheduled payment stays tied to your selected date</li>
+                <li>• Your payment method is securely stored for the scheduled purchase flow</li>
                 <li>• You are not charged today during authorization</li>
+                <li>• Your payment remains tied to the date you selected</li>
               </ul>
             </div>
           </aside>
@@ -188,7 +223,7 @@ function ConfirmFormWithClientSecret() {
       <main className="min-h-screen bg-white text-slate-900">
         <SiteHeader />
         <section className="mx-auto max-w-3xl px-6 py-20">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">Missing session</h1>
             <p className="mt-3 text-slate-600">
               Start from the demo page and create a new authorization flow.
