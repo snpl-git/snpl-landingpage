@@ -1,50 +1,10 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 export const MAX_DISTINCT_ITEMS = 10
 export const MAX_QUANTITY_PER_ITEM = 10
 export const MAX_CART_QUANTITY = 25
 export const MAX_CART_TOTAL_CENTS = 1_000_000
 export const MAX_SCHEDULE_DAYS = 90
-
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_REQUESTS = 10
-
-type RateLimitEntry = { count: number; resetAt: number }
-
-const globalRateLimits = globalThis as typeof globalThis & {
-  snplRateLimits?: Map<string, RateLimitEntry>
-}
-
-const rateLimits = globalRateLimits.snplRateLimits ?? new Map<string, RateLimitEntry>()
-globalRateLimits.snplRateLimits = rateLimits
-
-export function getClientAddress(headers: Headers) {
-  return (
-    headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ||
-    headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    headers.get('x-real-ip') ||
-    'unknown'
-  )
-}
-
-export function consumeCheckoutRateLimit(key: string, now = Date.now()) {
-  const current = rateLimits.get(key)
-
-  if (!current || current.resetAt <= now) {
-    rateLimits.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return { allowed: true, retryAfterSeconds: 0 }
-  }
-
-  if (current.count >= RATE_LIMIT_REQUESTS) {
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
-    }
-  }
-
-  current.count += 1
-  return { allowed: true, retryAfterSeconds: 0 }
-}
 
 export function hashRequest(value: unknown) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex')
@@ -58,19 +18,41 @@ function getCheckoutSecret() {
   return secret
 }
 
-export function createCheckoutToken(orderId: string) {
-  const signature = createHmac('sha256', getCheckoutSecret()).update(orderId).digest('base64url')
-  return `${orderId}.${signature}`
+type CheckoutToken = { v: 1; oid: string; iat: number; exp: number; sv: number; n: string }
+
+export function createCheckoutToken(orderId: string, sessionVersion = 1, now = Date.now()) {
+  const issuedAt = Math.floor(now / 1000)
+  const payload: CheckoutToken = {
+    v: 1, oid: orderId, iat: issuedAt, exp: issuedAt + 30 * 60,
+    sv: sessionVersion, n: randomBytes(16).toString('base64url'),
+  }
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const signature = createHmac('sha256', getCheckoutSecret()).update(encoded).digest('base64url')
+  return `${encoded}.${signature}`
 }
 
-export function requestOwnsOrder(headers: Headers, orderId: string) {
+export function checkoutTokenForOrder(headers: Headers, orderId: string, now = Date.now()) {
   const cookie = headers.get('cookie')?.split(';').map((item) => item.trim())
     .find((item) => item.startsWith(`${CHECKOUT_COOKIE}=`))
   const token = cookie ? decodeURIComponent(cookie.slice(CHECKOUT_COOKIE.length + 1)) : ''
-  const expected = createCheckoutToken(orderId)
-  const actualBuffer = Buffer.from(token)
+  const parts = token.split('.')
+  if (parts.length !== 2) return null
+  const [encoded = '', signature = ''] = parts
+  const expected = createHmac('sha256', getCheckoutSecret()).update(encoded).digest('base64url')
+  const actualBuffer = Buffer.from(signature)
   const expectedBuffer = Buffer.from(expected)
-  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
+  if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return null
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as CheckoutToken
+    const current = Math.floor(now / 1000)
+    if (payload.v !== 1 || payload.oid !== orderId || !Number.isInteger(payload.sv) || payload.sv < 1 ||
+        !Number.isInteger(payload.iat) || !Number.isInteger(payload.exp) ||
+        payload.iat > current + 60 || payload.exp <= current || payload.exp - payload.iat !== 30 * 60 ||
+        typeof payload.n !== 'string' || !/^[A-Za-z0-9_-]{20,32}$/.test(payload.n)) return null
+    return payload
+  } catch {
+    return null
+  }
 }
 
 export function parseScheduleDate(value: string, now = new Date()) {

@@ -1,0 +1,4 @@
+project_id = "snpl-landingpage"
+
+[functions.charge_due]
+verify_jwt = false
