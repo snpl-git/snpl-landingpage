@@ -1,6 +1,12 @@
 import Stripe from "stripe";
 import { createClient } from "supabase";
-import { failureTransition, paymentBindingIsValid, paymentIntentIdempotencyKey } from "./payment-logic.ts";
+import {
+  chargeFinalizationSucceeded,
+  failureFinalizationSucceeded,
+  failureTransition,
+  paymentBindingIsValid,
+  paymentIntentIdempotencyKey,
+} from "./payment-logic.ts";
 
 const MAX_BODY_BYTES = 4096;
 const jsonHeaders = { "Content-Type": "application/json", "Cache-Control": "no-store" };
@@ -56,6 +62,15 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Unauthorized" }, 401);
   }
 
+  const { data: reconciled, error: reconciliationError } = await supabase.rpc(
+    "reconcile_terminal_scheduled_payment_orders",
+    { p_limit: 100 },
+  );
+  if (reconciliationError || !Number.isInteger(Number(reconciled))) {
+    securityEvent("charge_due_reconciliation_failed");
+    return json({ error: "Unable to reconcile payments" }, 500);
+  }
+
   const { data: claimed, error: claimError } = await supabase.rpc(
     "claim_due_scheduled_payments",
     { p_limit: 25, p_stale_after: "15 minutes" },
@@ -65,13 +80,15 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Unable to claim payments" }, 500);
   }
 
-  const results = { claimed: claimed?.length ?? 0, charged: 0, failed: 0, retrying: 0 };
+  const results = {
+    reconciled: Number(reconciled), claimed: claimed?.length ?? 0,
+    charged: 0, failed: 0, retrying: 0,
+  };
   for (const payment of claimed ?? []) {
     const invalid = !paymentBindingIsValid({
       scheduledPaymentId: payment.id, orderId: payment.order_id, amount: payment.amount,
       orderTotalCents: payment.order_total_cents, orderStatus: payment.order_status,
       stripeCustomerId: payment.stripe_customer_id, paymentMethodId: payment.payment_method_id,
-      paymentMethodCustomerId: payment.stripe_customer_id,
     });
     if (invalid) {
       await supabase.from("scheduled_payments").update({
@@ -117,29 +134,40 @@ Deno.serve(async (req: Request) => {
         paymentIntent.metadata?.order_id !== payment.order_id
       ) throw new Error("PaymentIntent reconciliation failed");
 
-      const { data: updated, error: updateError } = await supabase
-        .from("scheduled_payments")
-        .update({
-          status: "charged", stripe_payment_intent_id: paymentIntent.id,
-          charged_at: new Date().toISOString(), failed_at: null,
-          next_retry_at: null, failure_code: null, last_error: null,
-        })
-        .eq("id", payment.id).eq("status", "processing").select("id").maybeSingle();
-      if (updateError || !updated) throw new Error("Charged payment persistence failed");
+      const { data: finalization, error: finalizationError } = await supabase.rpc(
+        "finalize_scheduled_payment_charge",
+        {
+          p_scheduled_payment_id: payment.id,
+          p_order_id: payment.order_id,
+          p_stripe_payment_intent_id: paymentIntent.id,
+          p_charged_at: new Date().toISOString(),
+        },
+      );
+      if (finalizationError || !chargeFinalizationSucceeded(finalization)) {
+        throw new Error("Charged payment persistence failed");
+      }
 
-      await supabase.from("orders").update({ status: "charged" })
-        .eq("id", payment.order_id).eq("status", "scheduled");
       results.charged++;
       securityEvent("scheduled_payment_charged", { scheduled_payment_id: payment.id });
     } catch (error) {
       const failure = safeStripeFailure(error);
       if (failure.terminal) {
-        await supabase.from("scheduled_payments").update({
-          status: failureTransition(true), failed_at: new Date().toISOString(),
-          failure_code: failure.code, last_error: "Payment attempt failed",
-        }).eq("id", payment.id).eq("status", "processing");
-        await supabase.from("orders").update({ status: "failed" })
-          .eq("id", payment.order_id).eq("status", "scheduled");
+        const { data: finalization, error: finalizationError } = await supabase.rpc(
+          "finalize_scheduled_payment_failure",
+          {
+            p_scheduled_payment_id: payment.id,
+            p_order_id: payment.order_id,
+            p_failure_code: failure.code,
+            p_failed_at: new Date().toISOString(),
+          },
+        );
+        if (finalizationError || !failureFinalizationSucceeded(finalization)) {
+          results.retrying++;
+          securityEvent("scheduled_payment_failure_persistence_failed", {
+            scheduled_payment_id: payment.id,
+          });
+          continue;
+        }
         results.failed++;
         securityEvent("scheduled_payment_declined", { scheduled_payment_id: payment.id, code: failure.code });
       } else {

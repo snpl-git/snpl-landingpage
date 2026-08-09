@@ -28,6 +28,7 @@ async function securityDatabase() {
   for (const migration of [
     'supabase/migrations/20260809173246_security_pass_2_payment_integrity.sql',
     'supabase/migrations/20260809173247_security_pass_2_rate_limits_webhooks.sql',
+    'supabase/migrations/20260809204822_atomic_payment_charge_finalization.sql',
   ]) await db.exec(await readFile(migration, 'utf8'))
   return db
 }
@@ -62,5 +63,63 @@ test('distributed limiter and webhook ledger are atomic', async () => {
   await db.exec(`update stripe_webhook_events set status='processed',processed_at=now() where stripe_event_id='evt_test_123'`)
   const duplicate = await db.query(`select public.claim_stripe_webhook_event('evt_test_123','setup_intent.succeeded') result`)
   assert.equal(duplicate.rows[0].result, 'duplicate')
+  await db.close()
+})
+
+test('successful Stripe charge finalization is atomic and retry-safe', async () => {
+  const db = await securityDatabase()
+  const order = '33333333-3333-4333-8333-333333333333'
+  const payment = '44444444-4444-4444-8444-444444444444'
+  await db.query(`insert into orders(id,stripe_customer_id,status,total_cents) values($1,'cus_atomic','scheduled',1000)`, [order])
+  await db.query(`insert into scheduled_payments(id,order_id,amount,run_at_date,status,currency,payment_method_id,processing_at) values($1,$2,1000,current_date,'processing','usd','pm_atomic',now())`, [payment, order])
+
+  await db.exec(`
+    create function fail_scheduled_charge() returns trigger language plpgsql as $$
+    begin if new.status = 'charged' then raise exception 'scheduled write failed'; end if; return new; end $$;
+    create trigger fail_scheduled_charge before update on scheduled_payments
+      for each row execute function fail_scheduled_charge();
+  `)
+  await assert.rejects(() => db.query(
+    `select finalize_scheduled_payment_charge($1,$2,'pi_atomic',now())`, [payment, order],
+  ))
+  let state = await db.query(`select sp.status payment_status,o.status order_status from scheduled_payments sp join orders o on o.id=sp.order_id where sp.id=$1`, [payment])
+  assert.deepEqual(state.rows[0], { payment_status: 'processing', order_status: 'scheduled' })
+  await db.exec(`drop trigger fail_scheduled_charge on scheduled_payments; drop function fail_scheduled_charge()`)
+
+  await db.exec(`
+    create function fail_order_charge() returns trigger language plpgsql as $$
+    begin if new.status = 'charged' then raise exception 'order write failed'; end if; return new; end $$;
+    create trigger fail_order_charge before update on orders
+      for each row execute function fail_order_charge();
+  `)
+  await assert.rejects(() => db.query(
+    `select finalize_scheduled_payment_charge($1,$2,'pi_atomic',now())`, [payment, order],
+  ))
+  state = await db.query(`select sp.status payment_status,sp.stripe_payment_intent_id,o.status order_status from scheduled_payments sp join orders o on o.id=sp.order_id where sp.id=$1`, [payment])
+  assert.deepEqual(state.rows[0], { payment_status: 'processing', stripe_payment_intent_id: null, order_status: 'scheduled' })
+  await db.exec(`drop trigger fail_order_charge on orders; drop function fail_order_charge()`)
+
+  const retried = await db.query(`select finalize_scheduled_payment_charge($1,$2,'pi_atomic',now()) result`, [payment, order])
+  assert.equal(retried.rows[0].result, 'charged')
+  const duplicate = await db.query(`select finalize_scheduled_payment_charge($1,$2,'pi_atomic',now()) result`, [payment, order])
+  assert.equal(duplicate.rows[0].result, 'already_charged')
+  await assert.rejects(() => db.query(
+    `select finalize_scheduled_payment_charge($1,$2,'pi_second',now())`, [payment, order],
+  ))
+  state = await db.query(`select sp.status payment_status,sp.stripe_payment_intent_id,o.status order_status from scheduled_payments sp join orders o on o.id=sp.order_id where sp.id=$1`, [payment])
+  assert.deepEqual(state.rows[0], { payment_status: 'charged', stripe_payment_intent_id: 'pi_atomic', order_status: 'charged' })
+  await db.close()
+})
+
+test('legacy charged-payment split state reconciles without Stripe', async () => {
+  const db = await securityDatabase()
+  const order = '55555555-5555-4555-8555-555555555555'
+  await db.query(`insert into orders(id,stripe_customer_id,status,total_cents) values($1,'cus_reconcile','scheduled',1000)`, [order])
+  await db.query(`insert into scheduled_payments(order_id,amount,run_at_date,status,currency,payment_method_id,stripe_payment_intent_id,charged_at) values($1,1000,current_date,'charged','usd','pm_reconcile','pi_reconcile',now())`, [order])
+  const reconciled = await db.query(`select reconcile_terminal_scheduled_payment_orders(100) result`)
+  assert.equal(Number(reconciled.rows[0].result), 1)
+  const state = await db.query(`select status from orders where id=$1`, [order])
+  assert.equal(state.rows[0].status, 'charged')
+  await assert.rejects(() => db.exec(`set role anon; select reconcile_terminal_scheduled_payment_orders(100)`))
   await db.close()
 })
