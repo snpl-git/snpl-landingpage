@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import WaitlistForm from "@/components/waitlist-form";
 import SiteHeader from "@/components/site-header";
 
@@ -45,9 +46,12 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-6 py-14">
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-          <img
+          <Image
             src="/demo-preview.png"
             alt="SNPL demo preview"
+            width={1536}
+            height={1024}
+            sizes="(max-width: 1152px) 100vw, 1152px"
             className="w-full object-cover"
           />
         </div>

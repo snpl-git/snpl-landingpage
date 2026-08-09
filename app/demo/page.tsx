@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase'
 import SiteHeader from '@/components/site-header'
 
@@ -12,6 +14,7 @@ type Product = {
 }
 
 export default function DemoPage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<Record<string, number>>({})
   const [date, setDate] = useState<string>('')
@@ -86,7 +89,7 @@ export default function DemoPage() {
       const json = await res.json()
 
       if (res.ok && json.orderId) {
-        window.location.assign(`/demo/confirm?order=${encodeURIComponent(json.orderId)}`)
+        router.push(`/demo/confirm?order=${encodeURIComponent(json.orderId)}`)
       } else {
         alert(json.error || 'Failed to start checkout')
       }
@@ -146,12 +149,14 @@ export default function DemoPage() {
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className="aspect-[4/3] bg-slate-100">
+                    <div className="relative aspect-[4/3] bg-slate-100">
                       {p.image_url ? (
-                        <img
+                        <Image
                           src={p.image_url}
                           alt={p.name}
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-sm text-slate-400">
