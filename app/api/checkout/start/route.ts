@@ -1,5 +1,6 @@
 export const runtime = 'nodejs'
 
+import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import {
   MAX_CART_TOTAL_CENTS,
@@ -135,15 +136,38 @@ export async function POST(req: Request) {
           { idempotencyKey: `snpl-customer-${requestId}` }
         )
 
+        const proposedOrderId = randomUUID()
+        const setupIntent = await stripe.setupIntents.create(
+          {
+            customer: customer.id,
+            payment_method_types: ['card'],
+            usage: 'off_session',
+            metadata: { order_id: proposedOrderId, checkout_request_id: requestId },
+          },
+          { idempotencyKey: `snpl-setup-${requestId}` }
+        )
+        const orderId = setupIntent.metadata?.order_id
+        if (
+          !setupIntent.client_secret ||
+          !orderId ||
+          setupIntent.metadata?.checkout_request_id !== requestId ||
+          setupIntent.customer !== customer.id
+        ) {
+          securityError('checkout_setup_intent_binding_failed', { route: 'checkout-start', requestId })
+          return genericServerError()
+        }
+
         const { data: insertedOrder, error: orderError } = await supaAdmin
           .from('orders')
           .insert({
+            id: orderId,
             user_id: null,
             total_cents: totalCents,
             status: 'scheduled',
             stripe_customer_id: customer.id,
             checkout_request_id: requestId,
             checkout_request_fingerprint: fingerprint,
+            stripe_setup_intent_id: setupIntent.id,
           })
           .select(orderColumns)
           .single()
