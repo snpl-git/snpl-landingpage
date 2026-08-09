@@ -23,7 +23,7 @@ const Body = z
     items: z
       .array(
         z.object({
-          id: z.string().uuid(),
+          id: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
           qty: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
         }).strict()
       )
