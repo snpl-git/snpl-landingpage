@@ -20,22 +20,16 @@ jobs:
           : "${CRON_TOKEN:?Missing CRON_TOKEN secret}"
           : "${SUPABASE_ANON_KEY:?Missing SUPABASE_ANON_KEY secret}"
 
-          echo "Calling $FUNCTION_URL ..."
           HTTP_STATUS=$(curl --show-error -s -X POST \
             "$FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
             -d "{\"cron_token\":\"${CRON_TOKEN}\"}" \
-            -D headers.txt \
             -o response.json \
             -w "%{http_code}")
 
-          echo "HTTP status: $HTTP_STATUS"
-          echo "Response headers:"
-          sed -e 's/\r$//' headers.txt | tail -n +1
-
-          echo "Response body:"
-          cat response.json || true
+          CORRELATION_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "charge_due correlation_id=$CORRELATION_ID status=$HTTP_STATUS"
 
           test "$HTTP_STATUS" -ge 200
           test "$HTTP_STATUS" -lt 300

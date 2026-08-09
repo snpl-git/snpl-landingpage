@@ -1,45 +1,20 @@
 export const runtime = 'nodejs'
 
+import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import {
-  MAX_CART_QUANTITY,
   MAX_CART_TOTAL_CENTS,
-  MAX_DISTINCT_ITEMS,
-  MAX_QUANTITY_PER_ITEM,
   CHECKOUT_COOKIE,
   createCheckoutToken,
-  consumeCheckoutRateLimit,
-  getClientAddress,
   hashRequest,
   parseScheduleDate,
 } from '@/lib/checkout-security'
 import { getCheckoutAdmin } from '@/lib/checkout-admin'
 import { getStripe } from '@/lib/stripe'
-
-const Body = z
-  .object({
-    requestId: z.string().uuid(),
-    items: z
-      .array(
-        z.object({
-          id: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
-          qty: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
-        }).strict()
-      )
-      .min(1)
-      .max(MAX_DISTINCT_ITEMS),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  })
-  .strict()
-  .superRefine(({ items }, context) => {
-    if (new Set(items.map(({ id }) => id)).size !== items.length) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Duplicate products are not allowed' })
-    }
-    if (items.reduce((sum, item) => sum + item.qty, 0) > MAX_CART_QUANTITY) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Cart quantity is too large' })
-    }
-  })
+import { consumeRateLimit, RATE_LIMITS, trustedClientIp } from '@/lib/rate-limit'
+import { readJsonBody, RequestBodyError } from '@/lib/request-security'
+import { securityError, securityLog } from '@/lib/security-log'
+import { CheckoutBodySchema } from '@/lib/checkout-input'
 
 type CheckoutResult = { fingerprint: string; orderId: string }
 const globalRequests = globalThis as typeof globalThis & {
@@ -51,12 +26,12 @@ globalRequests.snplCheckoutRequests = checkoutRequests
 const genericServerError = () =>
   NextResponse.json({ error: 'Unable to start checkout' }, { status: 500 })
 
-function checkoutResponse(orderId: string, status = 200) {
+function checkoutResponse(orderId: string, sessionVersion: number, status = 200) {
   const response = NextResponse.json(
     { orderId },
     { status, headers: { 'Cache-Control': 'no-store, private', Pragma: 'no-cache' } }
   )
-  response.cookies.set(CHECKOUT_COOKIE, createCheckoutToken(orderId), {
+  response.cookies.set(CHECKOUT_COOKIE, createCheckoutToken(orderId, sessionVersion), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -67,27 +42,24 @@ function checkoutResponse(orderId: string, status = 200) {
 }
 
 export async function POST(req: Request) {
-  const rateLimit = consumeCheckoutRateLimit(getClientAddress(req.headers))
+  const rateLimit = await consumeRateLimit(RATE_LIMITS.checkoutStart, trustedClientIp(req.headers))
   if (!rateLimit.allowed) {
+    const status = rateLimit.unavailable ? 503 : 429
     return NextResponse.json(
-      { error: 'Too many checkout attempts. Please try again shortly.' },
-      { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } }
+      { error: status === 503 ? 'Checkout is temporarily unavailable' : 'Too many checkout attempts. Please try again shortly.' },
+      { status, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds), 'X-SNPL-Challenge': status === 429 ? 'required' : 'unavailable' } }
     )
   }
 
   try {
-    const supaAdmin = getCheckoutAdmin()
-    const stripe = getStripe()
-    if (!req.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
-      return NextResponse.json({ error: 'Invalid request' }, { status: 415 })
-    }
-
-    const parsed = Body.safeParse(await req.json())
+    const parsed = CheckoutBodySchema.safeParse(await readJsonBody(req, 16 * 1024))
     if (!parsed.success || !parseScheduleDate(parsed.success ? parsed.data.date : '')) {
       return NextResponse.json({ error: 'Invalid checkout request' }, { status: 400 })
     }
 
     const { items, date, requestId } = parsed.data
+    const supaAdmin = getCheckoutAdmin()
+    const stripe = getStripe()
     const fingerprint = hashRequest({ items, date })
     const prior = checkoutRequests.get(requestId)
     if (prior) {
@@ -97,7 +69,10 @@ export async function POST(req: Request) {
       if (!prior.orderId) {
         return NextResponse.json({ error: 'Checkout request is already processing' }, { status: 409 })
       }
-      return checkoutResponse(prior.orderId)
+      const { data: priorOrder } = await supaAdmin.from('orders')
+        .select('checkout_session_version').eq('id', prior.orderId).single()
+      if (!priorOrder?.checkout_session_version) return genericServerError()
+      return checkoutResponse(prior.orderId, priorOrder.checkout_session_version)
     }
 
     const { data: products, error: productError } = await supaAdmin
@@ -107,7 +82,7 @@ export async function POST(req: Request) {
       .eq('active', true)
 
     if (productError) {
-      console.error('Checkout product lookup failed', productError)
+      securityError('checkout_product_lookup_failed', { route: 'checkout-start' })
       return genericServerError()
     }
     if (!products || products.length !== items.length) {
@@ -129,7 +104,7 @@ export async function POST(req: Request) {
 
     try {
       const orderColumns =
-        'id, total_cents, stripe_customer_id, checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id'
+        'id, total_cents, stripe_customer_id, checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id, checkout_session_version'
       const { data: existingOrder, error: existingOrderError } = await supaAdmin
         .from('orders')
         .select(orderColumns)
@@ -137,7 +112,7 @@ export async function POST(req: Request) {
         .maybeSingle()
 
       if (existingOrderError) {
-        console.error('Checkout idempotency lookup failed', existingOrderError)
+        securityError('checkout_idempotency_lookup_failed', { route: 'checkout-start', requestId })
         return genericServerError()
       }
 
@@ -161,15 +136,38 @@ export async function POST(req: Request) {
           { idempotencyKey: `snpl-customer-${requestId}` }
         )
 
+        const proposedOrderId = randomUUID()
+        const setupIntent = await stripe.setupIntents.create(
+          {
+            customer: customer.id,
+            payment_method_types: ['card'],
+            usage: 'off_session',
+            metadata: { order_id: proposedOrderId, checkout_request_id: requestId },
+          },
+          { idempotencyKey: `snpl-setup-${requestId}` }
+        )
+        const orderId = setupIntent.metadata?.order_id
+        if (
+          !setupIntent.client_secret ||
+          !orderId ||
+          setupIntent.metadata?.checkout_request_id !== requestId ||
+          setupIntent.customer !== customer.id
+        ) {
+          securityError('checkout_setup_intent_binding_failed', { route: 'checkout-start', requestId })
+          return genericServerError()
+        }
+
         const { data: insertedOrder, error: orderError } = await supaAdmin
           .from('orders')
           .insert({
+            id: orderId,
             user_id: null,
             total_cents: totalCents,
             status: 'scheduled',
             stripe_customer_id: customer.id,
             checkout_request_id: requestId,
             checkout_request_fingerprint: fingerprint,
+            stripe_setup_intent_id: setupIntent.id,
           })
           .select(orderColumns)
           .single()
@@ -181,12 +179,12 @@ export async function POST(req: Request) {
             .eq('checkout_request_id', requestId)
             .single()
           if (racedOrderError || !racedOrder) {
-            console.error('Checkout race recovery failed', racedOrderError)
+            securityError('checkout_race_recovery_failed', { route: 'checkout-start', requestId })
             return genericServerError()
           }
           order = racedOrder
         } else if (orderError || !insertedOrder) {
-          console.error('Checkout order insert failed', orderError)
+          securityError('checkout_order_insert_failed', { route: 'checkout-start', requestId })
           return genericServerError()
         } else {
           order = insertedOrder
@@ -221,7 +219,7 @@ export async function POST(req: Request) {
           persistedCheckout.checkout_request_fingerprint !== fingerprint ||
           persistedCheckout.stripe_setup_intent_id !== setupIntentId
         ) {
-          console.error('Checkout persistence validation failed', persistedCheckoutError)
+          securityError('checkout_persistence_validation_failed', { route: 'checkout-start', requestId })
           return false
         }
 
@@ -234,7 +232,7 @@ export async function POST(req: Request) {
         .eq('order_id', order.id)
         .maybeSingle()
       if (scheduleLookupError) {
-        console.error('Checkout schedule lookup failed', scheduleLookupError)
+        securityError('checkout_schedule_lookup_failed', { route: 'checkout-start', requestId })
         return genericServerError()
       }
       if (existingSchedule) {
@@ -245,7 +243,7 @@ export async function POST(req: Request) {
           )
         }
         if (!order.stripe_setup_intent_id) {
-          console.error('Usable checkout is missing its persisted SetupIntent', order.id)
+          securityError('checkout_setup_intent_missing', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
         if (!(await checkoutIsPersisted(order.stripe_setup_intent_id))) {
@@ -253,7 +251,7 @@ export async function POST(req: Request) {
         }
         checkoutUsable = true
         checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
-        return checkoutResponse(order.id)
+        return checkoutResponse(order.id, order.checkout_session_version)
       }
 
       let setupIntentId = order.stripe_setup_intent_id
@@ -264,7 +262,7 @@ export async function POST(req: Request) {
           persistedIntent.customer !== order.stripe_customer_id ||
           persistedIntent.status === 'canceled'
         ) {
-          console.error('Persisted SetupIntent failed order validation', setupIntentId)
+          securityError('checkout_setup_intent_binding_failed', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
       } else {
@@ -278,7 +276,7 @@ export async function POST(req: Request) {
           { idempotencyKey: `snpl-setup-${requestId}` }
         )
         if (!setupIntent.client_secret) {
-          console.error('Stripe returned a SetupIntent without a client secret', setupIntent.id)
+          securityError('checkout_setup_intent_incomplete', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
         setupIntentId = setupIntent.id
@@ -291,7 +289,7 @@ export async function POST(req: Request) {
           .select('stripe_setup_intent_id')
           .maybeSingle()
         if (setupIntentPersistError) {
-          console.error('SetupIntent persistence failed', setupIntentPersistError)
+          securityError('checkout_setup_intent_persistence_failed', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
         if (persistedOrder?.stripe_setup_intent_id !== setupIntentId) {
@@ -301,7 +299,7 @@ export async function POST(req: Request) {
             .eq('id', order.id)
             .single()
           if (racedIntentError || racedIntent?.stripe_setup_intent_id !== setupIntentId) {
-            console.error('SetupIntent persistence race failed validation', racedIntentError)
+            securityError('checkout_setup_intent_race_failed', { route: 'checkout-start', orderId: order.id })
             return genericServerError()
           }
         }
@@ -320,7 +318,7 @@ export async function POST(req: Request) {
       })
       if (scheduleError) {
         if (scheduleError.code !== '23505') {
-          console.error('Checkout schedule insert failed', scheduleError)
+          securityError('checkout_schedule_insert_failed', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
 
@@ -334,19 +332,24 @@ export async function POST(req: Request) {
           racedSchedule?.amount !== totalCents ||
           racedSchedule.run_at_date !== date
         ) {
-          console.error('Checkout schedule race failed validation', racedScheduleError)
+          securityError('checkout_schedule_race_failed', { route: 'checkout-start', orderId: order.id })
           return genericServerError()
         }
       }
 
       checkoutUsable = true
       checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
-      return checkoutResponse(order.id, created ? 201 : 200)
+      securityLog('checkout_created', { orderId: order.id, requestId })
+      return checkoutResponse(order.id, order.checkout_session_version, created ? 201 : 200)
     } finally {
       if (!checkoutUsable) checkoutRequests.delete(requestId)
     }
   } catch (error) {
-    console.error('Checkout start failed', error)
+    if (error instanceof RequestBodyError) {
+      securityLog('checkout_request_rejected', { route: 'checkout-start', status: error.status })
+      return NextResponse.json({ error: 'Invalid checkout request' }, { status: error.status })
+    }
+    securityError('checkout_start_failed', { route: 'checkout-start' })
     return genericServerError()
   }
 }
