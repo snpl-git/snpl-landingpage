@@ -19,10 +19,7 @@ function SuccessContent() {
   const [state, setState] = useState<'loading' | 'processing' | 'error'>('loading')
 
   useEffect(() => {
-    if (!orderId) {
-      setState('error')
-      return
-    }
+    if (!orderId) return
 
     let cancelled = false
     let attempts = 0
@@ -71,13 +68,14 @@ function SuccessContent() {
   }, [formattedAmount, formattedDate, order])
 
   if (!order) {
+    const displayState = orderId ? state : 'error'
     return (
       <main className="min-h-screen bg-white text-slate-900">
         <SiteHeader />
         <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h1 className="text-2xl font-semibold">{state === 'error' ? 'Unable to verify authorization' : 'Verifying authorization…'}</h1>
+          <h1 className="text-2xl font-semibold">{displayState === 'error' ? 'Unable to verify authorization' : 'Verifying authorization…'}</h1>
           <p className="mt-3 text-slate-600">
-            {state === 'error' ? 'Return to the demo and start a new checkout.' : 'We are confirming the trusted payment and order records.'}
+            {displayState === 'error' ? 'Return to the demo and start a new checkout.' : 'We are confirming the trusted payment and order records.'}
           </p>
         </section>
       </main>
