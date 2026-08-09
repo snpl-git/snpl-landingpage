@@ -129,7 +129,7 @@ export async function POST(req: Request) {
 
     try {
       const orderColumns =
-        'id, total_cents, stripe_customer_id, checkout_request_fingerprint, stripe_setup_intent_id'
+        'id, total_cents, stripe_customer_id, checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id'
       const { data: existingOrder, error: existingOrderError } = await supaAdmin
         .from('orders')
         .select(orderColumns)
@@ -146,6 +146,7 @@ export async function POST(req: Request) {
 
       if (order) {
         if (
+          order.checkout_request_id !== requestId ||
           order.checkout_request_fingerprint !== fingerprint ||
           order.total_cents !== totalCents
         ) {
@@ -195,6 +196,7 @@ export async function POST(req: Request) {
 
       if (
         !order ||
+        order.checkout_request_id !== requestId ||
         order.checkout_request_fingerprint !== fingerprint ||
         order.total_cents !== totalCents
       ) {
@@ -202,6 +204,28 @@ export async function POST(req: Request) {
           { error: 'Request identifier has already been used' },
           { status: 409 }
         )
+      }
+
+      const checkoutIsPersisted = async (setupIntentId: string) => {
+        const { data: persistedCheckout, error: persistedCheckoutError } = await supaAdmin
+          .from('orders')
+          .select(
+            'checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id'
+          )
+          .eq('id', order.id)
+          .single()
+
+        if (
+          persistedCheckoutError ||
+          persistedCheckout?.checkout_request_id !== requestId ||
+          persistedCheckout.checkout_request_fingerprint !== fingerprint ||
+          persistedCheckout.stripe_setup_intent_id !== setupIntentId
+        ) {
+          console.error('Checkout persistence validation failed', persistedCheckoutError)
+          return false
+        }
+
+        return true
       }
 
       const { data: existingSchedule, error: scheduleLookupError } = await supaAdmin
@@ -222,6 +246,9 @@ export async function POST(req: Request) {
         }
         if (!order.stripe_setup_intent_id) {
           console.error('Usable checkout is missing its persisted SetupIntent', order.id)
+          return genericServerError()
+        }
+        if (!(await checkoutIsPersisted(order.stripe_setup_intent_id))) {
           return genericServerError()
         }
         checkoutUsable = true
@@ -267,7 +294,7 @@ export async function POST(req: Request) {
           console.error('SetupIntent persistence failed', setupIntentPersistError)
           return genericServerError()
         }
-        if (!persistedOrder) {
+        if (persistedOrder?.stripe_setup_intent_id !== setupIntentId) {
           const { data: racedIntent, error: racedIntentError } = await supaAdmin
             .from('orders')
             .select('stripe_setup_intent_id')
@@ -278,6 +305,10 @@ export async function POST(req: Request) {
             return genericServerError()
           }
         }
+      }
+
+      if (!setupIntentId || !(await checkoutIsPersisted(setupIntentId))) {
+        return genericServerError()
       }
 
       const { error: scheduleError } = await supaAdmin.from('scheduled_payments').insert({
