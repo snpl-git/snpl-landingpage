@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getCheckoutAdmin } from "@/lib/checkout-admin";
 
 const Body = z.object({
   firstName: z.string().trim().max(100).optional().or(z.literal("")),
@@ -15,6 +10,7 @@ const Body = z.object({
 
 export async function POST(req: Request) {
   try {
+    const supabase = getCheckoutAdmin();
     const body = await req.json();
     const parsed = Body.safeParse(body);
 
@@ -45,7 +41,7 @@ export async function POST(req: Request) {
     if (error) {
       console.error("waitlist upsert error:", error);
       return NextResponse.json(
-        { error: error.message || "Failed to save signup" },
+        { error: "Failed to save signup" },
         { status: 500 }
       );
     }
