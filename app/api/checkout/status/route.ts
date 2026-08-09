@@ -21,10 +21,10 @@ export async function GET(req: Request) {
 
     const { data: order, error: orderError } = await supaAdmin
       .from('orders')
-      .select('id, total_cents, status, stripe_customer_id')
+      .select('id, total_cents, status, stripe_customer_id, stripe_setup_intent_id')
       .eq('id', orderId.data)
       .single()
-    if (orderError || !order?.stripe_customer_id) {
+    if (orderError || !order?.stripe_customer_id || !order.stripe_setup_intent_id) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
@@ -37,10 +37,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const intents = await stripe.setupIntents.list({ customer: order.stripe_customer_id, limit: 10 })
-    const setupIntent = intents.data.find((intent) => intent.metadata?.order_id === order.id)
+    const setupIntent = await stripe.setupIntents.retrieve(order.stripe_setup_intent_id)
+    const intentCustomer =
+      typeof setupIntent.customer === 'string' ? setupIntent.customer : setupIntent.customer?.id
     const authorized =
-      setupIntent?.status === 'succeeded' &&
+      setupIntent.metadata?.order_id === order.id &&
+      intentCustomer === order.stripe_customer_id &&
+      setupIntent.status === 'succeeded' &&
       scheduled.payment_method_id !== 'pm_pending' &&
       scheduled.amount === order.total_cents
 

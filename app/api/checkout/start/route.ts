@@ -125,63 +125,195 @@ export async function POST(req: Request) {
 
     // Reserve this request ID before external calls so concurrent retries cannot create duplicate orders.
     checkoutRequests.set(requestId, { fingerprint, orderId: '' })
+    let checkoutUsable = false
 
-    const customer = await stripe.customers.create(
-      { description: 'SNPL demo customer', metadata: { checkout_request_id: requestId } },
-      { idempotencyKey: `snpl-customer-${requestId}` }
-    )
+    try {
+      const orderColumns =
+        'id, total_cents, stripe_customer_id, checkout_request_fingerprint, stripe_setup_intent_id'
+      const { data: existingOrder, error: existingOrderError } = await supaAdmin
+        .from('orders')
+        .select(orderColumns)
+        .eq('checkout_request_id', requestId)
+        .maybeSingle()
 
-    const { data: order, error: orderError } = await supaAdmin
-      .from('orders')
-      .insert({
-        user_id: null,
-        total_cents: totalCents,
-        status: 'scheduled',
-        stripe_customer_id: customer.id,
+      if (existingOrderError) {
+        console.error('Checkout idempotency lookup failed', existingOrderError)
+        return genericServerError()
+      }
+
+      let order = existingOrder
+      let created = false
+
+      if (order) {
+        if (
+          order.checkout_request_fingerprint !== fingerprint ||
+          order.total_cents !== totalCents
+        ) {
+          return NextResponse.json(
+            { error: 'Request identifier has already been used' },
+            { status: 409 }
+          )
+        }
+      } else {
+        const customer = await stripe.customers.create(
+          { description: 'SNPL demo customer', metadata: { checkout_request_id: requestId } },
+          { idempotencyKey: `snpl-customer-${requestId}` }
+        )
+
+        const { data: insertedOrder, error: orderError } = await supaAdmin
+          .from('orders')
+          .insert({
+            user_id: null,
+            total_cents: totalCents,
+            status: 'scheduled',
+            stripe_customer_id: customer.id,
+            checkout_request_id: requestId,
+            checkout_request_fingerprint: fingerprint,
+          })
+          .select(orderColumns)
+          .single()
+
+        if (orderError?.code === '23505') {
+          const { data: racedOrder, error: racedOrderError } = await supaAdmin
+            .from('orders')
+            .select(orderColumns)
+            .eq('checkout_request_id', requestId)
+            .single()
+          if (racedOrderError || !racedOrder) {
+            console.error('Checkout race recovery failed', racedOrderError)
+            return genericServerError()
+          }
+          order = racedOrder
+        } else if (orderError || !insertedOrder) {
+          console.error('Checkout order insert failed', orderError)
+          return genericServerError()
+        } else {
+          order = insertedOrder
+          created = true
+        }
+      }
+
+      if (
+        !order ||
+        order.checkout_request_fingerprint !== fingerprint ||
+        order.total_cents !== totalCents
+      ) {
+        return NextResponse.json(
+          { error: 'Request identifier has already been used' },
+          { status: 409 }
+        )
+      }
+
+      const { data: existingSchedule, error: scheduleLookupError } = await supaAdmin
+        .from('scheduled_payments')
+        .select('order_id, amount, run_at_date')
+        .eq('order_id', order.id)
+        .maybeSingle()
+      if (scheduleLookupError) {
+        console.error('Checkout schedule lookup failed', scheduleLookupError)
+        return genericServerError()
+      }
+      if (existingSchedule) {
+        if (existingSchedule.amount !== totalCents || existingSchedule.run_at_date !== date) {
+          return NextResponse.json(
+            { error: 'Request identifier has already been used' },
+            { status: 409 }
+          )
+        }
+        if (!order.stripe_setup_intent_id) {
+          console.error('Usable checkout is missing its persisted SetupIntent', order.id)
+          return genericServerError()
+        }
+        checkoutUsable = true
+        checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
+        return checkoutResponse(order.id)
+      }
+
+      let setupIntentId = order.stripe_setup_intent_id
+      if (setupIntentId) {
+        const persistedIntent = await stripe.setupIntents.retrieve(setupIntentId)
+        if (
+          persistedIntent.metadata?.order_id !== order.id ||
+          persistedIntent.customer !== order.stripe_customer_id ||
+          persistedIntent.status === 'canceled'
+        ) {
+          console.error('Persisted SetupIntent failed order validation', setupIntentId)
+          return genericServerError()
+        }
+      } else {
+        const setupIntent = await stripe.setupIntents.create(
+          {
+            customer: order.stripe_customer_id,
+            payment_method_types: ['card'],
+            usage: 'off_session',
+            metadata: { order_id: order.id, checkout_request_id: requestId },
+          },
+          { idempotencyKey: `snpl-setup-${requestId}` }
+        )
+        if (!setupIntent.client_secret) {
+          console.error('Stripe returned a SetupIntent without a client secret', setupIntent.id)
+          return genericServerError()
+        }
+        setupIntentId = setupIntent.id
+
+        const { data: persistedOrder, error: setupIntentPersistError } = await supaAdmin
+          .from('orders')
+          .update({ stripe_setup_intent_id: setupIntentId })
+          .eq('id', order.id)
+          .is('stripe_setup_intent_id', null)
+          .select('stripe_setup_intent_id')
+          .maybeSingle()
+        if (setupIntentPersistError) {
+          console.error('SetupIntent persistence failed', setupIntentPersistError)
+          return genericServerError()
+        }
+        if (!persistedOrder) {
+          const { data: racedIntent, error: racedIntentError } = await supaAdmin
+            .from('orders')
+            .select('stripe_setup_intent_id')
+            .eq('id', order.id)
+            .single()
+          if (racedIntentError || racedIntent?.stripe_setup_intent_id !== setupIntentId) {
+            console.error('SetupIntent persistence race failed validation', racedIntentError)
+            return genericServerError()
+          }
+        }
+      }
+
+      const { error: scheduleError } = await supaAdmin.from('scheduled_payments').insert({
+        order_id: order.id,
+        amount: totalCents,
+        run_at_date: date,
+        payment_method_id: 'pm_pending',
+        currency: 'usd',
       })
-      .select('id')
-      .single()
+      if (scheduleError) {
+        if (scheduleError.code !== '23505') {
+          console.error('Checkout schedule insert failed', scheduleError)
+          return genericServerError()
+        }
 
-    if (orderError || !order) {
-      console.error('Checkout order insert failed', orderError)
-      checkoutRequests.delete(requestId)
-      return genericServerError()
+        const { data: racedSchedule, error: racedScheduleError } = await supaAdmin
+          .from('scheduled_payments')
+          .select('amount, run_at_date')
+          .eq('order_id', order.id)
+          .single()
+        if (
+          racedScheduleError ||
+          racedSchedule?.amount !== totalCents ||
+          racedSchedule.run_at_date !== date
+        ) {
+          console.error('Checkout schedule race failed validation', racedScheduleError)
+          return genericServerError()
+        }
+      }
+
+      checkoutUsable = true
+      checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
+      return checkoutResponse(order.id, created ? 201 : 200)
+    } finally {
+      if (!checkoutUsable) checkoutRequests.delete(requestId)
     }
-    checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
-
-    const setupIntent = await stripe.setupIntents.create(
-      {
-        customer: customer.id,
-        payment_method_types: ['card'],
-        usage: 'off_session',
-        metadata: { order_id: order.id, checkout_request_id: requestId },
-      },
-      { idempotencyKey: `snpl-setup-${requestId}` }
-    )
-
-    if (!setupIntent.client_secret) {
-      console.error('Stripe returned a SetupIntent without a client secret', setupIntent.id)
-      return genericServerError()
-    }
-
-    const { error: scheduleError } = await supaAdmin.from('scheduled_payments').insert({
-      order_id: order.id,
-      amount: totalCents,
-      run_at_date: date,
-      payment_method_id: 'pm_pending',
-      currency: 'usd',
-    })
-
-    if (scheduleError) {
-      console.error('Checkout schedule insert failed', scheduleError)
-      await stripe.setupIntents.cancel(setupIntent.id).catch((error) =>
-        console.error('Failed to cancel orphaned SetupIntent', error)
-      )
-      return genericServerError()
-    }
-
-    checkoutRequests.set(requestId, { fingerprint, orderId: order.id })
-    return checkoutResponse(order.id, 201)
   } catch (error) {
     console.error('Checkout start failed', error)
     return genericServerError()

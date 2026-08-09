@@ -23,16 +23,21 @@ export async function GET(req: Request) {
 
     const { data: order, error } = await supaAdmin
       .from('orders')
-      .select('id, stripe_customer_id')
+      .select('id, stripe_customer_id, stripe_setup_intent_id')
       .eq('id', orderId.data)
       .single()
-    if (error || !order?.stripe_customer_id) {
+    if (error || !order?.stripe_customer_id || !order.stripe_setup_intent_id) {
       return NextResponse.json({ error: 'Checkout session not found' }, { status: 404 })
     }
 
-    const intents = await stripe.setupIntents.list({ customer: order.stripe_customer_id, limit: 10 })
-    const intent = intents.data.find((item) => item.metadata?.order_id === order.id)
-    if (!intent?.client_secret || ['canceled', 'succeeded'].includes(intent.status)) {
+    const intent = await stripe.setupIntents.retrieve(order.stripe_setup_intent_id)
+    const intentCustomer = typeof intent.customer === 'string' ? intent.customer : intent.customer?.id
+    if (
+      intent.metadata?.order_id !== order.id ||
+      intentCustomer !== order.stripe_customer_id ||
+      !intent.client_secret ||
+      ['canceled', 'succeeded'].includes(intent.status)
+    ) {
       return NextResponse.json({ error: 'Checkout session is not available' }, { status: 409 })
     }
 

@@ -42,6 +42,7 @@ export async function POST(req: Request) {
         .select('id')
         .eq('id', orderId.data)
         .eq('stripe_customer_id', customer)
+        .eq('stripe_setup_intent_id', setupIntent.id)
         .single()
       if (orderError || !order) {
         console.error('SetupIntent order/customer validation failed', setupIntent.id, orderError)
