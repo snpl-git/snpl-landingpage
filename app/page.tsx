@@ -10,15 +10,19 @@ export default function HomePage() {
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
-            Schedule Now, Pay Later
+            Schedule Now. Pay Later.
           </p>
 
           <h1 className="mx-auto max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
-            Buy now. Pay on your schedule.
+            Shop now. Pay on your schedule.
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            Shop for what you want today. Pick the date that works for you.
+            Find what you want, choose the day that works for you, and we’ll take care of the rest.
+          </p>
+
+          <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-slate-200">
+            No credit. No installments. No interest.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -81,7 +85,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h2 className="text-3xl font-semibold tracking-tight">
-          Timing matters
+          Don’t finance it. Schedule it.
         </h2>
 
         <p className="mt-6 text-lg leading-8 text-slate-600">

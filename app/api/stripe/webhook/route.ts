@@ -1,46 +1,68 @@
 export const runtime = 'nodejs'
 
-import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { z } from 'zod'
+import { getCheckoutAdmin } from '@/lib/checkout-admin'
+import { getStripe } from '@/lib/stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
-const supaAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const OrderId = z.string().uuid()
 
 export async function POST(req: Request) {
   try {
-    const sig = (await headers()).get('stripe-signature') as string
-    const buf = Buffer.from(await req.arrayBuffer())
-    const event = stripe.webhooks.constructEvent(buf, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    const stripe = getStripe()
+    const supaAdmin = getCheckoutAdmin()
+    const signature = (await headers()).get('stripe-signature')
+    if (!signature) {
+      return NextResponse.json({ error: 'Invalid webhook request' }, { status: 400 })
+    }
+
+    const event = stripe.webhooks.constructEvent(
+      Buffer.from(await req.arrayBuffer()),
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    )
 
     if (event.type === 'setup_intent.succeeded') {
-      const si = event.data.object as Stripe.SetupIntent
-      const pm = si.payment_method as string
-      const customer = si.customer as string
+      const setupIntent = event.data.object as Stripe.SetupIntent
+      const orderId = OrderId.safeParse(setupIntent.metadata?.order_id)
+      const paymentMethod =
+        typeof setupIntent.payment_method === 'string' ? setupIntent.payment_method : setupIntent.payment_method?.id
+      const customer =
+        typeof setupIntent.customer === 'string' ? setupIntent.customer : setupIntent.customer?.id
 
-      // find most recent order for this customer
-      const { data: orders, error } = await supaAdmin
+      if (!orderId.success || !paymentMethod || !customer) {
+        console.error('Succeeded SetupIntent is missing required SNPL metadata', setupIntent.id)
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+      }
+
+      const { data: order, error: orderError } = await supaAdmin
         .from('orders')
         .select('id')
+        .eq('id', orderId.data)
         .eq('stripe_customer_id', customer)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('stripe_setup_intent_id', setupIntent.id)
+        .single()
+      if (orderError || !order) {
+        console.error('SetupIntent order/customer validation failed', setupIntent.id, orderError)
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+      }
 
-      if (!error && orders?.[0]?.id) {
-        await supaAdmin
-          .from('scheduled_payments')
-          .update({ payment_method_id: pm })
-          .eq('order_id', orders[0].id)
+      const { error: updateError } = await supaAdmin
+        .from('scheduled_payments')
+        .update({ payment_method_id: paymentMethod })
+        .eq('order_id', order.id)
+        .eq('payment_method_id', 'pm_pending')
+      if (updateError) {
+        console.error('Scheduled payment authorization update failed', updateError)
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
       }
     }
 
     return NextResponse.json({ received: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 })
+  } catch (error) {
+    console.error('Stripe webhook rejected', error)
+    return NextResponse.json({ error: 'Invalid webhook request' }, { status: 400 })
   }
 }

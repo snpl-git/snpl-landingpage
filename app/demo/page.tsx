@@ -23,6 +23,7 @@ export default function DemoPage() {
     supabase
       .from('products')
       .select('*')
+      .eq('active', true)
       .then(({ data, error }) => {
         if (error) console.error(error)
         setProducts((data as Product[]) || [])
@@ -68,12 +69,13 @@ export default function DemoPage() {
     try {
       setLoading(true)
 
-      const primaryProduct = selectedItems[0]?.name || 'Your purchase'
+      const requestId = crypto.randomUUID()
 
       const res = await fetch('/api/checkout/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          requestId,
           items: Object.entries(cart)
             .filter(([, qty]) => qty > 0)
             .map(([id, qty]) => ({ id, qty })),
@@ -83,15 +85,8 @@ export default function DemoPage() {
 
       const json = await res.json()
 
-      if (json.clientSecret) {
-        const params = new URLSearchParams({
-          cs: json.clientSecret,
-          order: json.orderId,
-          product: primaryProduct,
-          date,
-        })
-
-        window.location.href = `/demo/confirm?${params.toString()}`
+      if (res.ok && json.orderId) {
+        window.location.assign(`/demo/confirm?order=${encodeURIComponent(json.orderId)}`)
       } else {
         alert(json.error || 'Failed to start checkout')
       }
@@ -203,7 +198,7 @@ export default function DemoPage() {
                             min={0}
                             value={cart[p.id] || 0}
                             onChange={(e) => {
-                              const val = Math.max(0, Number(e.target.value) || 0)
+                              const val = Math.min(10, Math.max(0, Math.floor(Number(e.target.value) || 0)))
                               setCart((c) => ({ ...c, [p.id]: val }))
                             }}
                             className="w-14 text-center font-medium border border-transparent rounded focus:border-slate-300 focus:outline-none"

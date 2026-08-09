@@ -1,163 +1,59 @@
 'use client'
 
-import { Suspense, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import SiteHeader from '@/components/site-header'
 
-export const dynamic = 'force-dynamic'
-
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-function ConfirmFormInner() {
+function ConfirmForm({ orderId }: { orderId: string }) {
   const stripe = useStripe()
   const elements = useElements()
-  const search = useSearchParams()
-  const orderId = search.get('order') || ''
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  const returnUrl = useMemo(() => {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const url = new URL('/demo/success', base)
-
-    const product = search.get('product') || ''
-    const date = search.get('date') || ''
-
-    if (orderId) url.searchParams.set('order', orderId)
-    if (product) url.searchParams.set('product', product)
-    if (date) url.searchParams.set('date', date)
-
-    return url.toString()
-  }, [orderId, search])
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault()
     if (!stripe || !elements) return
-
     setLoading(true)
 
-    const { error } = await stripe.confirmSetup({
-      elements,
-      confirmParams: { return_url: returnUrl },
-    })
-
-    setLoading(false)
-
-    if (error) {
-      alert(error.message)
+    const result = await stripe.confirmSetup({ elements, redirect: 'if_required' })
+    if (result.error) {
+      setLoading(false)
+      alert(result.error.message || 'Authorization failed')
+      return
     }
+
+    router.replace(`/demo/success?order=${encodeURIComponent(orderId)}`)
   }
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteHeader />
-
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-5xl px-6 py-14">
-          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
-            Interactive Demo
-          </p>
-          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
-            Step 2
-          </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Authorize your card
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Securely save your payment method now so your purchase can be charged on the date you selected.
-          </p>
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-slate-400">Interactive Demo · Step 2</p>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Authorize your card</h1>
+          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">Securely save your payment method for the scheduled purchase.</p>
         </div>
       </section>
-
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl border border-slate-200 bg-white p-6">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Confirm authorization
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Your payment method is securely saved for the scheduled purchase flow.
-              </p>
-            </div>
-
-            <form onSubmit={onSubmit} className="space-y-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <PaymentElement />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!stripe || loading}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-              >
+            <h2 className="text-2xl font-semibold tracking-tight">Confirm authorization</h2>
+            <form onSubmit={onSubmit} className="mt-6 space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><PaymentElement /></div>
+              <button type="submit" disabled={!stripe || loading} className="w-full rounded-xl bg-slate-900 px-4 py-3 text-white disabled:opacity-40">
                 {loading ? 'Authorizing...' : 'Confirm Authorization'}
               </button>
-
-              <p className="text-center text-xs leading-5 text-slate-500">
-                Powered by Stripe. Your payment details are encrypted and secure.
-              </p>
             </form>
           </div>
-
           <aside className="h-fit rounded-3xl border border-slate-200 bg-slate-50 p-6">
-            <div className="mb-6">
-              <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
-                Demo Card
-              </p>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Quick demo card
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Use these details to complete the flow instantly.
-              </p>
-            </div>
-
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                  Card number
-                </p>
-                <p className="mt-1 text-lg font-semibold tracking-wide">
-                  4242 4242 4242 4242
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    Expiration
-                  </p>
-                  <p className="mt-1 text-base font-medium">12 / 34</p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                    CVC
-                  </p>
-                  <p className="mt-1 text-base font-medium">123</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-                  ZIP code
-                </p>
-                <p className="mt-1 text-base font-medium">12345</p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Security and control
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-                <li>• Your payment method is securely stored for the scheduled purchase flow</li>
-                <li>• You are not charged today during authorization</li>
-                <li>• Your payment remains tied to the date you selected</li>
-              </ul>
-            </div>
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">Demo Card</p>
+            <p className="mt-3 text-lg font-semibold tracking-wide">4242 4242 4242 4242</p>
+            <p className="mt-2 text-sm text-slate-600">Expiration 12 / 34 · CVC 123 · ZIP 12345</p>
           </aside>
         </div>
       </section>
@@ -165,61 +61,28 @@ function ConfirmFormInner() {
   )
 }
 
-function ConfirmFormWithClientSecret() {
-  const search = useSearchParams()
-  const clientSecret = search.get('cs') || ''
+function ConfirmContent() {
+  const orderId = useSearchParams().get('order') || ''
+  const [clientSecret, setClientSecret] = useState('')
+  const [error, setError] = useState('')
 
-  const options = useMemo(
-    () =>
-      ({
-        clientSecret,
-        appearance: {
-          theme: 'flat',
-          variables: {
-            colorPrimary: '#0f172a',
-            colorText: '#0f172a',
-            colorBackground: '#ffffff',
-            colorDanger: '#dc2626',
-            borderRadius: '12px',
-          },
-        },
-      } as const),
-    [clientSecret]
-  )
+  useEffect(() => {
+    if (!orderId) return
+    fetch(`/api/checkout/session?order=${encodeURIComponent(orderId)}`, { cache: 'no-store' })
+      .then(async (response) => ({ ok: response.ok, body: await response.json() }))
+      .then(({ ok, body }) => {
+        if (!ok || !body.clientSecret) throw new Error('Session unavailable')
+        setClientSecret(body.clientSecret)
+      })
+      .catch(() => setError('This checkout session is missing or no longer available.'))
+  }, [orderId])
 
-  if (!clientSecret) {
-    return (
-      <main className="min-h-screen bg-white text-slate-900">
-        <SiteHeader />
-        <section className="mx-auto max-w-3xl px-6 py-20">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Missing session</h1>
-            <p className="mt-3 text-slate-600">
-              Start from the demo page and create a new authorization flow.
-            </p>
-            <a
-              href="/demo"
-              className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-white transition hover:bg-slate-800"
-            >
-              Back to Demo
-            </a>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  return (
-    <Elements stripe={stripePromise} options={options}>
-      <ConfirmFormInner />
-    </Elements>
-  )
+  const options = useMemo(() => ({ clientSecret, appearance: { theme: 'flat' as const } }), [clientSecret])
+  if (!orderId || error) return <div className="p-10 text-center text-slate-600">{error || 'Missing checkout session.'}</div>
+  if (!clientSecret) return <div className="p-10 text-center text-slate-600">Loading secure checkout…</div>
+  return <Elements stripe={stripePromise} options={options}><ConfirmForm orderId={orderId} /></Elements>
 }
 
 export default function ConfirmPage() {
-  return (
-    <Suspense fallback={<div className="p-6 text-slate-600">Loading...</div>}>
-      <ConfirmFormWithClientSecret />
-    </Suspense>
-  )
+  return <Suspense fallback={<div className="p-6 text-slate-600">Loading…</div>}><ConfirmContent /></Suspense>
 }
