@@ -4,6 +4,38 @@ import test from 'node:test'
 import { canCancelScheduledPayment } from '../lib/account-security.ts'
 import { shouldRedirectAccountRequest } from '../lib/account-auth.ts'
 import { checkoutOwnerMatches } from '../lib/checkout-owner.ts'
+import { PhoneOtpRequestSchema, phoneOtpCredentials } from '../lib/auth-input.ts'
+
+test('overview counts all owner-scoped scheduled orders separately from recent activity', async () => {
+  const overview = await readFile('app/account/page.tsx', 'utf8')
+  assert.match(overview, /select\('id', \{ count: 'exact', head: true \}\)\.eq\('user_id', userId\)\.eq\('status', 'scheduled'\)/)
+  assert.match(overview, /order\('created_at', \{ ascending: false \}\)\.limit\(5\)/)
+  assert.doesNotMatch(overview, /orders\?\.filter/)
+})
+
+test('phone OTP requires a shaped CAPTCHA token and passes it to Supabase options', () => {
+  const valid = { phone: '+15551234567', captchaToken: 'turnstile-token-with-safe-length' }
+  assert.equal(PhoneOtpRequestSchema.safeParse(valid).success, true)
+  assert.equal(PhoneOtpRequestSchema.safeParse({ phone: valid.phone }).success, false)
+  assert.equal(PhoneOtpRequestSchema.safeParse({ ...valid, captchaToken: 'short' }).success, false)
+  assert.equal(PhoneOtpRequestSchema.safeParse({ ...valid, captchaToken: `${'a'.repeat(20)} token` }).success, false)
+  assert.deepEqual(phoneOtpCredentials(valid), {
+    phone: valid.phone,
+    options: { captchaToken: valid.captchaToken },
+  })
+})
+
+test('phone OTP challenge resets after each send attempt', async () => {
+  const login = await readFile('app/login/login-form.tsx', 'utf8')
+  assert.match(login, /setCaptchaToken\(''\)/)
+  assert.match(login, /setCaptchaResetKey\(\(value\) => value \+ 1\)/)
+})
+
+test('content security policy permits the Turnstile challenge origin', async () => {
+  const config = await readFile('next.config.mjs', 'utf8')
+  const occurrences = config.match(/https:\/\/challenges\.cloudflare\.com/g) || []
+  assert.equal(occurrences.length, 3)
+})
 
 test('unauthenticated account access is redirected to login', async () => {
   assert.equal(shouldRedirectAccountRequest('/account', null), true)

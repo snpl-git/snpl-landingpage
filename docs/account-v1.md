@@ -3,10 +3,16 @@
 ## Configuration
 
 1. Enable Phone authentication in Supabase Auth and configure an SMS provider.
-2. Configure CAPTCHA and production Auth rate limits before launch.
-3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or the
+2. Create a Cloudflare Turnstile widget for each deployed hostname. Set its public site
+   key as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+3. In Supabase Dashboard, open Authentication > Bot and Abuse Protection, enable CAPTCHA,
+   select Cloudflare Turnstile, and store the Turnstile secret there. The secret is held
+   by Supabase and must never use a `NEXT_PUBLIC_` environment variable.
+4. Configure production Auth rate limits before launch. The application rate limiter
+   remains enabled as defense in depth.
+5. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or the
    legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Public clients never receive the service-role key.
-4. Apply `20260905120000_account_v1_cancellation.sql` through the normal reviewed
+6. Apply `20260905120000_account_v1_cancellation.sql` through the normal reviewed
    migration pipeline before deploying the account UI.
 
 ## Architecture and security boundaries
@@ -14,6 +20,9 @@
 - `@supabase/ssr` stores Auth sessions in cookies. Next.js `proxy.ts` refreshes and
   verifies claims for account navigation; pages and mutation handlers independently
   verify identity again.
+- Phone OTP requests require a browser-generated Turnstile token. The server validates
+  its shape and forwards it as Supabase Auth's `captchaToken`; Supabase verifies it with
+  the configured secret. Challenges are reset after every request so they can be retried.
 - Account pages query with the authenticated Supabase client, so the existing owner
   RLS policies on `accounts`, `orders`, and `scheduled_payments` remain authoritative.
 - Checkout uses the same service-role persistence, SetupIntent binding, webhook, and

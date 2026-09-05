@@ -5,12 +5,16 @@ import { formatCurrency, formatDate } from '@/lib/account-format'
 export default async function AccountOverviewPage() {
   const userId = await requireUserId()
   const supabase = await createAuthClient()
-  const [{ data: account }, { data: orders, error }] = await Promise.all([
+  const [accountResult, recentOrdersResult, scheduledCountResult] = await Promise.all([
     supabase.from('accounts').select('display_name').eq('id', userId).maybeSingle(),
     supabase.from('orders').select('id,total_cents,status,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'scheduled'),
   ])
+  const error = accountResult.error || recentOrdersResult.error || scheduledCountResult.error
   if (error) throw error
-  const scheduled = orders?.filter((order) => order.status === 'scheduled').length || 0
+  const account = accountResult.data
+  const orders = recentOrdersResult.data
+  const scheduled = scheduledCountResult.count ?? 0
   return <div className="space-y-8">
     <div><h2 className="text-2xl font-semibold">Welcome{account?.display_name ? `, ${account.display_name}` : ''}</h2><p className="mt-2 text-slate-600">See what’s scheduled and review your recent purchases.</p></div>
     <div className="grid gap-4 sm:grid-cols-3">
