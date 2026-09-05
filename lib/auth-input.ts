@@ -1,13 +1,13 @@
 import { z } from 'zod'
 
-export const PhoneOtpRequestSchema = z.object({
-  phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
+export const EmailAuthRequestSchema = z.object({
+  email: z.string().trim().email().max(254),
   captchaToken: z.string().min(20).max(2048).regex(/^\S+$/),
 }).strict()
 
-export function phoneOtpCredentials(input: z.infer<typeof PhoneOtpRequestSchema>) {
+export function emailOtpCredentials(input: z.infer<typeof EmailAuthRequestSchema>) {
   return {
-    phone: input.phone,
+    email: input.email,
     options: { captchaToken: input.captchaToken },
   }
 }

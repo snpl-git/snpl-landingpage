@@ -45,7 +45,7 @@ A production-ready starter for the Schedule Now, Pay Later (SNPL) holiday landin
 
 ## Account v1
 
-Account v1 adds phone OTP sign-in, cookie-backed Supabase SSR sessions, owner-scoped
+Account v1 adds passkey-first sign-in with email bootstrap and recovery, cookie-backed Supabase SSR sessions, owner-scoped
 purchase views, read-only saved card details, and guarded scheduled-purchase
 cancellation. See `docs/account-v1.md` for configuration, security boundaries, and
 deferred work.

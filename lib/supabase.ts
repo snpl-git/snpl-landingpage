@@ -10,6 +10,8 @@ export function getSupabaseClient() {
   if (!url || !key) {
     throw new Error('Missing public Supabase environment variables.')
   }
-  browserClient ??= createBrowserClient(url, key)
+  browserClient ??= createBrowserClient(url, key, {
+    auth: { experimental: { passkey: true } },
+  })
   return browserClient
 }

@@ -5,6 +5,7 @@ import { requireUserId } from '@/lib/supabase-auth'
 const links = [
   ['/account', 'Overview'], ['/account/scheduled', 'Scheduled'],
   ['/account/history', 'History'], ['/account/payment-methods', 'Payment methods'],
+  ['/account/security', 'Security'],
 ] as const
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {

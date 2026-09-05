@@ -7,8 +7,8 @@ export default function LoginPage() {
     <section className="mx-auto max-w-md px-6 py-20">
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">SNPL Account</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Sign in by phone</h1>
-        <p className="mt-3 text-slate-600">We’ll text you a one-time code. No password needed.</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Sign in to SNPL</h1>
+        <p className="mt-3 text-slate-600">Use your passkey, or continue with email to create or recover your account.</p>
         <LoginForm />
       </div>
     </section>
