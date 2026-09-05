@@ -11,6 +11,7 @@
     "test:security": "node --no-warnings --test --experimental-strip-types tests/*.test.ts tests/*.test.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.6",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.11.0",
     "@supabase/supabase-js": "^2.112.2",

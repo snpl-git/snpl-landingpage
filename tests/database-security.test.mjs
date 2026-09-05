@@ -11,10 +11,14 @@ async function securityDatabase() {
     create role service_role noinherit bypassrls;
     create schema auth;
     create table auth.users(id uuid primary key);
+    create function auth.uid() returns uuid language sql stable as $$
+      select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+    $$;
     create table public.orders(
       id uuid primary key default gen_random_uuid(), stripe_customer_id text, status text,
-      total_cents integer, user_id uuid references auth.users(id), checkout_request_id uuid,
-      checkout_request_fingerprint text, stripe_setup_intent_id text
+      total_cents integer, user_id uuid, checkout_request_id uuid,
+      checkout_request_fingerprint text, stripe_setup_intent_id text,
+      created_at timestamptz not null default now()
     );
     create table public.scheduled_payments(
       id uuid primary key default gen_random_uuid(), order_id uuid references public.orders(id),
@@ -26,12 +30,58 @@ async function securityDatabase() {
     create unique index orders_stripe_setup_intent_id_key on public.orders(stripe_setup_intent_id) where stripe_setup_intent_id is not null;
   `)
   for (const migration of [
-    'supabase/migrations/20260809173246_security_pass_2_payment_integrity.sql',
-    'supabase/migrations/20260809173247_security_pass_2_rate_limits_webhooks.sql',
-    'supabase/migrations/20260809204822_atomic_payment_charge_finalization.sql',
+    'supabase/migrations/20260809114931_account_foundation_and_owner_rls.sql',
+    'supabase/migrations/20260809115237_rename_profiles_to_accounts.sql',
+    'supabase/migrations/20260809211921_security_pass_2_payment_integrity.sql',
+    'supabase/migrations/20260809212135_security_pass_2_rate_limits_webhooks.sql',
+    'supabase/migrations/20260809212158_atomic_payment_charge_finalization.sql',
+    'supabase/migrations/20260905120000_account_v1_cancellation.sql',
   ]) await db.exec(await readFile(migration, 'utf8'))
   return db
 }
+
+test('account RLS policies bind account and order reads to auth.uid()', async () => {
+  const db = await securityDatabase()
+  const userA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const userB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  await db.query('insert into auth.users(id) values ($1),($2)', [userA, userB])
+  await db.query(`insert into accounts(id,display_name) values ($1,'A'),($2,'B')`, [userA, userB])
+  await db.query(`insert into orders(id,user_id,stripe_customer_id,status,total_cents) values
+    ('11111111-1111-4111-8111-111111111111',$1,'cus_a','scheduled',1000),
+    ('22222222-2222-4222-8222-222222222222',$2,'cus_b','scheduled',2000)`, [userA, userB])
+  const policies = await db.query(`select tablename,qual from pg_policies
+    where policyname in ('account_owner_select','orders_owner_select') order by tablename`)
+  assert.equal(policies.rows.length, 2)
+  const accountPolicy = policies.rows.find((row) => row.tablename === 'accounts')
+  const orderPolicy = policies.rows.find((row) => row.tablename === 'orders')
+  assert.match(accountPolicy.qual, /auth\.uid\(\).*id|id.*auth\.uid\(\)/)
+  assert.match(orderPolicy.qual, /auth\.uid\(\).*user_id|user_id.*auth\.uid\(\)/)
+  const visibleToA = await db.query('select user_id from orders where user_id=$1', [userA])
+  assert.deepEqual(visibleToA.rows.map((row) => row.user_id), [userA])
+  await db.close()
+})
+
+test('cancellation is owner-only and only allowed before processing', async () => {
+  const db = await securityDatabase()
+  const userA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const userB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  const orderId = '33333333-3333-4333-8333-333333333333'
+  const paymentId = '44444444-4444-4444-8444-444444444444'
+  await db.query('insert into auth.users(id) values ($1),($2)', [userA, userB])
+  await db.query(`insert into orders(id,user_id,stripe_customer_id,status,total_cents) values ($1,$2,'cus_a','scheduled',1000)`, [orderId, userA])
+  await db.query(`insert into scheduled_payments(id,order_id,amount,run_at_date,status,currency,payment_method_id) values ($1,$2,1000,current_date,'scheduled','usd','pm_a')`, [paymentId, orderId])
+  const denied = await db.query('select cancel_owned_scheduled_purchase($1,$2) result', [paymentId, userB])
+  assert.equal(denied.rows[0].result, 'not_found')
+  await db.query(`update scheduled_payments set status='processing',processing_at=now() where id=$1`, [paymentId])
+  const processing = await db.query('select cancel_owned_scheduled_purchase($1,$2) result', [paymentId, userA])
+  assert.equal(processing.rows[0].result, 'state_conflict')
+  await db.query(`update scheduled_payments set status='scheduled',processing_at=null where id=$1`, [paymentId])
+  const cancelled = await db.query('select cancel_owned_scheduled_purchase($1,$2) result', [paymentId, userA])
+  assert.equal(cancelled.rows[0].result, 'cancelled')
+  const state = await db.query(`select sp.status payment_status,o.status order_status from scheduled_payments sp join orders o on o.id=sp.order_id where sp.id=$1`, [paymentId])
+  assert.deepEqual(state.rows[0], { payment_status: 'cancelled', order_status: 'cancelled' })
+  await db.close()
+})
 
 test('database blocks duplicate schedules and anonymous security-state access', async () => {
   const db = await securityDatabase()
