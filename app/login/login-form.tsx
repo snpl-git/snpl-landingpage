@@ -36,16 +36,24 @@ export default function LoginForm() {
   }
 
   async function signInWithPasskey() {
+    if (!captchaToken) {
+      setError('Complete the security check first.')
+      return
+    }
     setPasskeyLoading(true)
     setError('')
     try {
-      const { data, error: passkeyError } = await getSupabaseClient().auth.signInWithPasskey()
+      const { data, error: passkeyError } = await getSupabaseClient().auth.signInWithPasskey({
+        options: { captchaToken },
+      })
       if (passkeyError || !data.session) throw passkeyError || new Error('Passkey sign-in did not complete.')
       router.push('/account')
       router.refresh()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to sign in with a passkey.')
     } finally {
+      setCaptchaToken('')
+      setCaptchaResetKey((value) => value + 1)
       setPasskeyLoading(false)
     }
   }

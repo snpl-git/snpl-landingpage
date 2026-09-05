@@ -37,11 +37,13 @@ test('email bootstrap uses the protected initiation route and resets CAPTCHA', a
   assert.match(login, /setCaptchaResetKey\(\(value\) => value \+ 1\)/)
 })
 
-test('passkey client opt-in and identifier-free sign-in path are present', async () => {
+test('passkey client opt-in and CAPTCHA-protected identifier-free sign-in path are present', async () => {
   const client = await readFile('lib/supabase.ts', 'utf8')
   const login = await readFile('app/login/login-form.tsx', 'utf8')
   assert.match(client, /experimental: \{ passkey: true \}/)
-  assert.match(login, /auth\.signInWithPasskey\(\)/)
+  assert.match(login, /if \(!captchaToken\) \{[\s\S]*setError\('Complete the security check first\.'\)[\s\S]*return/)
+  assert.match(login, /auth\.signInWithPasskey\(\{[\s\S]*options: \{ captchaToken \}/)
+  assert.match(login, /finally \{[\s\S]*setCaptchaToken\(''\)[\s\S]*setCaptchaResetKey\(\(value\) => value \+ 1\)/)
   assert.match(login, /'Sign in with passkey'/)
 })
 
@@ -52,6 +54,14 @@ test('passkey registration requires an authenticated user', async () => {
   assert.match(manager, /auth\.getClaims\(\)/)
   assert.match(manager, /auth\.registerPasskey\(\)/)
   assert.match(manager, /auth\.passkey\.list\(\)/)
+})
+
+test('passkey registration button locks after an existing or newly registered passkey', async () => {
+  const manager = await readFile('app/account/security/passkey-manager.tsx', 'utf8')
+  assert.match(manager, /setRegistrationSucceeded\(true\)/)
+  assert.match(manager, /disabled=\{registering \|\| loading \|\| registrationSucceeded \|\| passkeys\.length > 0\}/)
+  assert.match(manager, /registrationSucceeded \|\| passkeys\.length > 0 \? 'Passkey added' : 'Add a passkey'/)
+  assert.match(manager, /await loadPasskeys\(\)/)
 })
 
 test('content security policy permits the Turnstile challenge origin', async () => {
