@@ -11,6 +11,8 @@ export const RATE_LIMITS = {
   checkoutStatus: { name: 'checkout-status', limit: 60, windowSeconds: 600 },
   checkoutStatusToken: { name: 'checkout-status-token', limit: 60, windowSeconds: 600 },
   subscribe: { name: 'subscribe', limit: 5, windowSeconds: 3600 },
+  authOtpSend: { name: 'auth-otp-send', limit: 5, windowSeconds: 3600 },
+  authOtpVerify: { name: 'auth-otp-verify', limit: 10, windowSeconds: 600 },
 } satisfies Record<string, RateLimitPolicy>
 
 type Entry = { count: number; expiresAt: number }
