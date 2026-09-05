@@ -15,6 +15,8 @@ import { consumeRateLimit, RATE_LIMITS, trustedClientIp } from '@/lib/rate-limit
 import { readJsonBody, RequestBodyError } from '@/lib/request-security'
 import { securityError, securityLog } from '@/lib/security-log'
 import { CheckoutBodySchema } from '@/lib/checkout-input'
+import { getVerifiedUserId } from '@/lib/supabase-auth'
+import { checkoutOwnerMatches } from '@/lib/checkout-owner'
 
 type CheckoutResult = { fingerprint: string; orderId: string }
 const globalRequests = globalThis as typeof globalThis & {
@@ -58,6 +60,7 @@ export async function POST(req: Request) {
     }
 
     const { items, date, requestId } = parsed.data
+    const userId = await getVerifiedUserId()
     const supaAdmin = getCheckoutAdmin()
     const stripe = getStripe()
     const fingerprint = hashRequest({ items, date })
@@ -70,8 +73,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Checkout request is already processing' }, { status: 409 })
       }
       const { data: priorOrder } = await supaAdmin.from('orders')
-        .select('checkout_session_version').eq('id', prior.orderId).single()
-      if (!priorOrder?.checkout_session_version) return genericServerError()
+        .select('checkout_session_version, user_id').eq('id', prior.orderId).single()
+      if (!priorOrder?.checkout_session_version || !checkoutOwnerMatches(priorOrder.user_id, userId)) {
+        return NextResponse.json({ error: 'Request identifier has already been used' }, { status: 409 })
+      }
       return checkoutResponse(prior.orderId, priorOrder.checkout_session_version)
     }
 
@@ -104,7 +109,7 @@ export async function POST(req: Request) {
 
     try {
       const orderColumns =
-        'id, total_cents, stripe_customer_id, checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id, checkout_session_version'
+        'id, user_id, total_cents, stripe_customer_id, checkout_request_id, checkout_request_fingerprint, stripe_setup_intent_id, checkout_session_version'
       const { data: existingOrder, error: existingOrderError } = await supaAdmin
         .from('orders')
         .select(orderColumns)
@@ -123,7 +128,8 @@ export async function POST(req: Request) {
         if (
           order.checkout_request_id !== requestId ||
           order.checkout_request_fingerprint !== fingerprint ||
-          order.total_cents !== totalCents
+          order.total_cents !== totalCents ||
+          !checkoutOwnerMatches(order.user_id, userId)
         ) {
           return NextResponse.json(
             { error: 'Request identifier has already been used' },
@@ -161,7 +167,7 @@ export async function POST(req: Request) {
           .from('orders')
           .insert({
             id: orderId,
-            user_id: null,
+            user_id: userId,
             total_cents: totalCents,
             status: 'scheduled',
             stripe_customer_id: customer.id,
@@ -196,7 +202,8 @@ export async function POST(req: Request) {
         !order ||
         order.checkout_request_id !== requestId ||
         order.checkout_request_fingerprint !== fingerprint ||
-        order.total_cents !== totalCents
+        order.total_cents !== totalCents ||
+        !checkoutOwnerMatches(order.user_id, userId)
       ) {
         return NextResponse.json(
           { error: 'Request identifier has already been used' },
